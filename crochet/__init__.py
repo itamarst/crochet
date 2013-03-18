@@ -8,7 +8,10 @@ import atexit
 from twisted.internet import reactor
 
 
-class _Setup(object):
+__all__ = ["setup"]
+
+
+class _Crochet(object):
     """
     Initialization infrastructure for running a reactor in a thread.
     """
@@ -18,7 +21,7 @@ class _Setup(object):
         self._started = False
         self._lock = threading.Lock()
 
-    def __call__(self):
+    def setup(self):
         """
         Initialize the crochet library.
 
@@ -35,4 +38,6 @@ class _Setup(object):
             self._atexit_register(self._reactor.callFromThread,
                                   self._reactor.stop)
 
-setup = _Setup(reactor, atexit.register)
+
+_main = _Crochet(reactor, atexit.register)
+setup = _main.setup

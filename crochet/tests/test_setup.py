@@ -6,7 +6,7 @@ import threading
 
 from twisted.trial.unittest import TestCase
 
-from crochet import _Setup, setup
+from crochet import _Crochet, _main, setup
 
 
 class FakeReactor(object):
@@ -43,7 +43,7 @@ class SetupTests(TestCase):
         With it first call, setup() runs the reactor in a thread.
         """
         reactor = FakeReactor()
-        _Setup(reactor, lambda f, g: None)()
+        _Crochet(reactor, lambda f, g: None).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
         self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
@@ -54,9 +54,9 @@ class SetupTests(TestCase):
         The second call to setup() does nothing.
         """
         reactor = FakeReactor()
-        s = _Setup(reactor, lambda f, g: None)
-        s()
-        s()
+        s = _Crochet(reactor, lambda f, g: None)
+        s.setup()
+        s.setup()
         reactor.started.wait(5)
         self.assertEqual(reactor.runs, 1)
 
@@ -66,8 +66,8 @@ class SetupTests(TestCase):
         """
         atexit = []
         reactor = FakeReactor()
-        s = _Setup(reactor, lambda f, arg: atexit.append((f, arg)))
-        s()
+        s = _Crochet(reactor, lambda f, arg: atexit.append((f, arg)))
+        s.setup()
         self.assertTrue(atexit)
         self.assertFalse(reactor.stopping)
         f, arg = atexit[0]
@@ -88,5 +88,7 @@ class SetupTests(TestCase):
         """
         from twisted.internet import reactor
         import atexit
-        self.assertIdentical(setup._reactor, reactor)
-        self.assertIdentical(setup._atexit_register, atexit.register)
+        self.assertIsInstance(_main, _Crochet)
+        self.assertEqual(_main.setup, setup)
+        self.assertIdentical(_main._reactor, reactor)
+        self.assertIdentical(_main._atexit_register, atexit.register)
