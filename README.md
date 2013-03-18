@@ -7,12 +7,11 @@ Features
 --------
 
 * setup() runs reactor in thread, supports multiple calls.
-
+* in_event_loop decorator that runs code in Twisted, returns DeferredResult.
 
 Planned Initial Features
 ------------------------
 
-* runTwisted decorator that runs code in Twisted, returns future of some sort.
 * callLater which runs code in thread pool.
 * LoopingCall which runs code in thread pool.
 
