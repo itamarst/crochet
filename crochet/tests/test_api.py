@@ -113,7 +113,7 @@ class DeferredResultTests(TestCase):
         reactor = FakeReactor()
         cancelled = []
         def error(f):
-            cancelled.append(reactor.inCallFromThread)
+            cancelled.append(reactor.in_call_from_thread)
             cancelled.append(f)
 
         d = Deferred().addErrback(error)
@@ -152,7 +152,7 @@ class InEventLoopTests(TestCase):
         @c.in_event_loop
         def func(reactor, a, b, c):
             self.assertIdentical(reactor, myreactor)
-            self.assertTrue(reactor.inCallFromThread)
+            self.assertTrue(reactor.in_call_from_thread)
             calls.append((a, b, c))
 
         func(1, 2, c=3)
@@ -228,9 +228,11 @@ class PublicAPITests(TestCase):
         is exposed via its public methods.
         """
         from twisted.internet import reactor
+        from twisted.python.log import startLoggingWithObserver
         import atexit
         self.assertIsInstance(_main, EventLoop)
         self.assertEqual(_main.setup, setup)
         self.assertEqual(_main.in_event_loop, in_event_loop)
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, atexit.register)
+        self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)

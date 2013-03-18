@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import threading
 
 from twisted.trial.unittest import TestCase
+from twisted.python.log import PythonLoggingObserver
 
 from .._eventloop import EventLoop
 
@@ -17,7 +18,7 @@ class FakeReactor(object):
     """
     thread_id = None
     runs = 0
-    inCallFromThread = False
+    in_call_from_thread = False
 
     def __init__(self):
         self.started = threading.Event()
@@ -30,9 +31,9 @@ class FakeReactor(object):
         self.started.set()
 
     def callFromThread(self, f, *args, **kwargs):
-        self.inCallFromThread = True
+        self.in_call_from_thread = True
         f(*args, **kwargs)
-        self.inCallFromThread = False
+        self.in_call_from_thread = False
 
     def stop(self):
         self.stopping = True
@@ -86,3 +87,23 @@ class SetupTests(TestCase):
         All code in setup() is protected by a lock.
         """
     test_runs_with_lock.skip = "Need to figure out how to do this decently"
+
+    def test_logging(self):
+        """
+        setup() registers a PythonLogging log observer, removing the default
+        log observer.
+        """
+        logging = []
+        def fakeStartLoggingWithObserver(observer, setStdout=1):
+            expected = PythonLoggingObserver.emit
+            # Python 3 and 2 differ in value of __func__:
+            expected = getattr(expected, "__func__", expected)
+            self.assertIdentical(observer.__func__, expected)
+            self.assertEqual(setStdout, False)
+            self.assertTrue(reactor.in_call_from_thread)
+            logging.append(True)
+
+        reactor = FakeReactor()
+        loop = EventLoop(reactor, lambda f, g: None, fakeStartLoggingWithObserver)
+        loop.setup()
+        self.assertTrue(logging)

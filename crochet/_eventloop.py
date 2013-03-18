@@ -12,6 +12,7 @@ except ImportError:
 from functools import wraps
 
 from twisted.python.failure import Failure
+from twisted.python.log import PythonLoggingObserver
 from twisted.internet.threads import blockingCallFromThread
 from twisted.internet.defer import maybeDeferred
 from twisted.internet import reactor
@@ -73,9 +74,10 @@ class EventLoop(object):
     """
     Initialization infrastructure for running a reactor in a thread.
     """
-    def __init__(self, reactor, atexit_register):
+    def __init__(self, reactor, atexit_register, startLoggingWithObserver=None):
         self._reactor = reactor
         self._atexit_register = atexit_register
+        self._startLoggingWithObserver = startLoggingWithObserver
         self._started = False
         self._lock = threading.Lock()
 
@@ -93,6 +95,9 @@ class EventLoop(object):
             t = threading.Thread(
                 target=lambda: self._reactor.run(installSignalHandlers=False))
             t.start()
+            if self._startLoggingWithObserver:
+                self._reactor.callFromThread(
+                    self._startLoggingWithObserver, PythonLoggingObserver().emit, False)
             self._atexit_register(self._reactor.callFromThread,
                                   self._reactor.stop)
 
