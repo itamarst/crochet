@@ -2,15 +2,17 @@
 Tests for the crochet APIs.
 """
 
+from __future__ import absolute_import
+
 import threading
 import time
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 
-from crochet import _Crochet, DeferredResult, TimeoutError
-from crochet.tests.test_setup import FakeReactor
-
+from .._eventloop import EventLoop, DeferredResult, TimeoutError
+from .test_setup import FakeReactor
+from .. import _main, setup, in_event_loop
 
 class DeferredResultTests(TestCase):
     """
@@ -131,7 +133,7 @@ class InEventLoopTests(TestCase):
         The function decorated with in_event_loop has the same name as the
         original function.
         """
-        c = _Crochet(None, lambda f, g: None)
+        c = EventLoop(None, lambda f, g: None)
 
         @c.in_event_loop
         def some_name(reactor):
@@ -144,7 +146,7 @@ class InEventLoopTests(TestCase):
         thread, and takes the reactor as its first argument.
         """
         myreactor = FakeReactor()
-        c = _Crochet(myreactor, lambda f, g: None)
+        c = EventLoop(myreactor, lambda f, g: None)
         calls = []
 
         @c.in_event_loop
@@ -161,7 +163,7 @@ class InEventLoopTests(TestCase):
         Return a function wrapped with in_event_loop that returns its first argument.
         """
         myreactor = FakeReactor()
-        c = _Crochet(myreactor, lambda f, g: None)
+        c = EventLoop(myreactor, lambda f, g: None)
 
         @c.in_event_loop
         def passthrough(reactor, argument):
@@ -205,7 +207,7 @@ class InEventLoopTests(TestCase):
         DeferredResult hooked up to a Deferred wrapping the exception.
         """
         myreactor = FakeReactor()
-        c = _Crochet(myreactor, lambda f, g: None)
+        c = EventLoop(myreactor, lambda f, g: None)
 
         @c.in_event_loop
         def raiser(reactor):
@@ -214,3 +216,21 @@ class InEventLoopTests(TestCase):
         result = raiser()
         self.assertIsInstance(result, DeferredResult)
         self.assertRaises(ZeroDivisionError, result.result)
+
+
+class PublicAPITests(TestCase):
+    """
+    Tests for the public API.
+    """
+    def test_api(self):
+        """
+        An EventLoop object configured with the real reactor and atexit.register
+        is exposed via its public methods.
+        """
+        from twisted.internet import reactor
+        import atexit
+        self.assertIsInstance(_main, EventLoop)
+        self.assertEqual(_main.setup, setup)
+        self.assertEqual(_main.in_event_loop, in_event_loop)
+        self.assertIdentical(_main._reactor, reactor)
+        self.assertIdentical(_main._atexit_register, atexit.register)

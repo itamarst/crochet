@@ -2,11 +2,13 @@
 Tests for the initial setup.
 """
 
+from __future__ import absolute_import
+
 import threading
 
 from twisted.trial.unittest import TestCase
 
-from crochet import _Crochet, _main, setup, in_event_loop
+from .._eventloop import EventLoop
 
 
 class FakeReactor(object):
@@ -46,7 +48,7 @@ class SetupTests(TestCase):
         With it first call, setup() runs the reactor in a thread.
         """
         reactor = FakeReactor()
-        _Crochet(reactor, lambda f, g: None).setup()
+        EventLoop(reactor, lambda f, g: None).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
         self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
@@ -57,7 +59,7 @@ class SetupTests(TestCase):
         The second call to setup() does nothing.
         """
         reactor = FakeReactor()
-        s = _Crochet(reactor, lambda f, g: None)
+        s = EventLoop(reactor, lambda f, g: None)
         s.setup()
         s.setup()
         reactor.started.wait(5)
@@ -69,7 +71,7 @@ class SetupTests(TestCase):
         """
         atexit = []
         reactor = FakeReactor()
-        s = _Crochet(reactor, lambda f, arg: atexit.append((f, arg)))
+        s = EventLoop(reactor, lambda f, arg: atexit.append((f, arg)))
         s.setup()
         self.assertTrue(atexit)
         self.assertFalse(reactor.stopping)
@@ -84,16 +86,3 @@ class SetupTests(TestCase):
         All code in setup() is protected by a lock.
         """
     test_runs_with_lock.skip = "Need to figure out how to do this decently"
-
-    def test_api(self):
-        """
-        A _Context object configured with the real reactor and atexit.register
-        is exposed via its public methods.
-        """
-        from twisted.internet import reactor
-        import atexit
-        self.assertIsInstance(_main, _Crochet)
-        self.assertEqual(_main.setup, setup)
-        self.assertEqual(_main.in_event_loop, in_event_loop)
-        self.assertIdentical(_main._reactor, reactor)
-        self.assertIdentical(_main._atexit_register, atexit.register)
