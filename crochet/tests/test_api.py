@@ -6,7 +6,7 @@ import threading
 import time
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import succeed, Deferred, fail
+from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 
 from crochet import _Crochet, DeferredResult, TimeoutError
 from crochet.tests.test_setup import FakeReactor
@@ -102,6 +102,23 @@ class DeferredResultTests(TestCase):
         d.callback(u"value")
         self.assertEqual(dr.result(), u"value")
         self.assertEqual(dr.result(), u"value")
+
+    def test_cancel(self):
+        """
+        cancel() cancels the wrapped Deferred, running cancellation in the
+        event loop thread.
+        """
+        reactor = FakeReactor()
+        cancelled = []
+        def error(f):
+            cancelled.append(reactor.inCallFromThread)
+            cancelled.append(f)
+
+        d = Deferred().addErrback(error)
+        dr = DeferredResult(d, _reactor=reactor)
+        dr.cancel()
+        self.assertTrue(cancelled[0])
+        self.assertIsInstance(cancelled[1].value, CancelledError)
 
 
 class InEventLoopTests(TestCase):

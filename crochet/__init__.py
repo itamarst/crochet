@@ -30,8 +30,9 @@ class DeferredResult(object):
     A blocking interface to Deferred results.
     """
 
-    def __init__(self, deferred):
+    def __init__(self, deferred, _reactor=reactor):
         self._deferred = deferred
+        self._reactor = _reactor
         self._queue = Queue()
         self._deferred.addBoth(self._queue.put)
 
@@ -45,6 +46,7 @@ class DeferredResult(object):
 
         Multiple calls will have no additional effect.
         """
+        self._reactor.callFromThread(self._deferred.cancel)
 
     def result(self, timeout=None):
         """
