@@ -5,15 +5,21 @@ Crochet!
 import threading
 import atexit
 try:
-    from queue import Queue
+    from queue import Queue, Empty
 except ImportError:
-    from Queue import Queue
+    from Queue import Queue, Empty
 
 from twisted.internet import reactor
 from twisted.python.failure import Failure
 
 
-__all__ = ["setup"]
+__all__ = ["setup", "DeferredResult", "TimeoutError"]
+
+
+class TimeoutError(Exception):
+    """
+    A timeout has been hit.
+    """
 
 
 class DeferredResult(object):
@@ -45,10 +51,15 @@ class DeferredResult(object):
         timeout option is provided. If the given number of seconds pass with
         no result, a TimeoutError will be thrown.
 
-        Additional calls to this function will have the same behavior as the
-        first call.
+        If a previous call timed out, additional calls to this function will
+        still wait for a result and return it if available. If a result was
+        returned or raised on the first call, additional calls will
+        return/raise the same result.
         """
-        result = self._queue.get()
+        try:
+            result = self._queue.get(timeout=timeout)
+        except Empty:
+            raise TimeoutError()
         self._queue.put(result) # allow next result() call to get a value out
         if isinstance(result, Failure):
             raise result.value

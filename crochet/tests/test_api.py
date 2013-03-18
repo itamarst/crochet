@@ -3,11 +3,12 @@ Tests for the crochet APIs.
 """
 
 import threading
+import time
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail
 
-from crochet import _Crochet, DeferredResult
+from crochet import _Crochet, DeferredResult, TimeoutError
 
 
 class DeferredResultTests(TestCase):
@@ -57,7 +58,7 @@ class DeferredResultTests(TestCase):
         """
         d = Deferred()
         def fireSoon():
-            import time; time.sleep(0.01)
+            time.sleep(0.01)
             d.errback(RuntimeError())
         threading.Thread(target=fireSoon).start()
         dr = DeferredResult(d)
@@ -70,6 +71,36 @@ class DeferredResultTests(TestCase):
         dr = DeferredResult(fail(ZeroDivisionError()))
         self.assertRaises(ZeroDivisionError, dr.result)
         self.assertRaises(ZeroDivisionError, dr.result)
+
+    def test_timeout(self):
+        """
+        If no result is available, result(timeout) will throw a TimeoutError.
+        """
+        start = time.time()
+        dr = DeferredResult(Deferred())
+        self.assertRaises(TimeoutError, dr.result, timeout=0.03)
+        self.assertTrue(abs(time.time() - start - 0.03) < 0.005)
+
+    def test_timeout_twice(self):
+        """
+        If no result is available, a second call to result(timeout) will also
+        result in a TimeoutError exception.
+        """
+        dr = DeferredResult(Deferred())
+        self.assertRaises(TimeoutError, dr.result, timeout=0.01)
+        self.assertRaises(TimeoutError, dr.result, timeout=0.01)
+
+    def test_timeout_then_result(self):
+        """
+        If a result becomes available after a timeout, a second call to
+        result() will return it.
+        """
+        d = Deferred()
+        dr = DeferredResult(d)
+        self.assertRaises(TimeoutError, dr.result, timeout=0.01)
+        d.callback(u"value")
+        self.assertEqual(dr.result(), u"value")
+        self.assertEqual(dr.result(), u"value")
 
 
 class InEventLoopTests(TestCase):
