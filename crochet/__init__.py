@@ -4,11 +4,50 @@ Crochet!
 
 import threading
 import atexit
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
 
 from twisted.internet import reactor
 
 
 __all__ = ["setup"]
+
+
+class DeferredResult(object):
+    """
+    A blocking interface to Deferred results.
+    """
+
+    def __init__(self, deferred):
+        self._deferred = deferred
+        self._queue = Queue()
+        self._deferred.addBoth(self._queue.put)
+
+    def cancel(self):
+        """
+        Try to cancel the operation by cancelling the underlying Defered.
+
+        Cancellation of the operation may or may not happen depending on
+        underlying cancellation support and whether the operation has already
+        finished. In any case, however, the underlying Deferred will be fired.
+
+        Multiple calls will have no additional effect.
+        """
+
+    def result(self, timeout=None):
+        """
+        Return the result, or throw an exception if result is a failure.
+
+        It may take an unknown amount of time to return the result, so a
+        timeout option is provided. If the given number of seconds pass with
+        no result, a TimeoutError will be thrown.
+
+        Additional calls to this function will have the same behavior as the
+        first call.
+        """
+        return self._queue.get()
 
 
 class _Crochet(object):
