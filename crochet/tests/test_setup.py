@@ -6,7 +6,7 @@ import threading
 
 from twisted.trial.unittest import TestCase
 
-from crochet import _Crochet, _main, setup
+from crochet import _Crochet, _main, setup, in_event_loop
 
 
 class FakeReactor(object):
@@ -85,13 +85,15 @@ class SetupTests(TestCase):
         """
     test_runs_with_lock.skip = "Need to figure out how to do this decently"
 
-    def test_defaults(self):
+    def test_api(self):
         """
-        setup() is configured with the real reactor and atexit.register.
+        A _Context object configured with the real reactor and atexit.register
+        is exposed via its public methods.
         """
         from twisted.internet import reactor
         import atexit
         self.assertIsInstance(_main, _Crochet)
         self.assertEqual(_main.setup, setup)
+        self.assertEqual(_main.in_event_loop, in_event_loop)
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, atexit.register)

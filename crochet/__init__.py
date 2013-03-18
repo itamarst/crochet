@@ -16,7 +16,7 @@ from twisted.internet.threads import blockingCallFromThread
 from twisted.internet.defer import maybeDeferred
 
 
-__all__ = ["setup", "DeferredResult", "TimeoutError"]
+__all__ = ["setup", "in_event_loop", "DeferredResult", "TimeoutError"]
 
 
 class TimeoutError(Exception):
@@ -119,3 +119,4 @@ class _Crochet(object):
 
 _main = _Crochet(reactor, atexit.register)
 setup = _main.setup
+in_event_loop = _main.in_event_loop
