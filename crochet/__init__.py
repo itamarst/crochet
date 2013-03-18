@@ -8,6 +8,7 @@ try:
     from queue import Queue, Empty
 except ImportError:
     from Queue import Queue, Empty
+from functools import wraps
 
 from twisted.internet import reactor
 from twisted.python.failure import Failure
@@ -92,6 +93,22 @@ class _Crochet(object):
             t.start()
             self._atexit_register(self._reactor.callFromThread,
                                   self._reactor.stop)
+
+
+    def in_event_loop(self, function):
+        """
+        A decorator that ensures the wrapped function runs in the reactor thread.
+
+        The wrapped function will get the reactor passed in as a first
+        argument, in addition to any arguments it is called with.
+
+        When the wrapped function is called, a DeferredResult is returned.
+        """
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            self._reactor.callFromThread(
+                function, self._reactor, *args, **kwargs)
+        return wrapper
 
 
 _main = _Crochet(reactor, atexit.register)

@@ -15,6 +15,7 @@ class FakeReactor(object):
     """
     thread_id = None
     runs = 0
+    inCallFromThread = False
 
     def __init__(self):
         self.started = threading.Event()
@@ -27,7 +28,9 @@ class FakeReactor(object):
         self.started.set()
 
     def callFromThread(self, f, *args, **kwargs):
+        self.inCallFromThread = True
         f(*args, **kwargs)
+        self.inCallFromThread = False
 
     def stop(self):
         self.stopping = True

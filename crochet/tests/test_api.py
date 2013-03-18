@@ -9,6 +9,7 @@ from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail
 
 from crochet import _Crochet, DeferredResult, TimeoutError
+from crochet.tests.test_setup import FakeReactor
 
 
 class DeferredResultTests(TestCase):
@@ -107,3 +108,34 @@ class InEventLoopTests(TestCase):
     """
     Tests for the in_event_loop decorator.
     """
+
+    def test_name(self):
+        """
+        The function decorated with in_event_loop has the same name as the
+        original function.
+        """
+        c = _Crochet(None, lambda f, g: None)
+
+        @c.in_event_loop
+        def some_name(reactor):
+            pass
+        self.assertEqual(some_name.__name__, "some_name")
+
+    def test_run_in_reactor_thread(self):
+        """
+        The function decorated with in_event_loop is run in the reactor
+        thread, and takes the reactor as its first argument.
+        """
+        myreactor = FakeReactor()
+        c = _Crochet(myreactor, lambda f, g: None)
+        calls = []
+
+        @c.in_event_loop
+        def func(reactor, a, b, c):
+            self.assertIdentical(reactor, myreactor)
+            self.assertTrue(reactor.inCallFromThread)
+            calls.append((a, b, c))
+
+        func(1, 2, c=3)
+        self.assertEqual(calls, [(1, 2, 3)])
+
