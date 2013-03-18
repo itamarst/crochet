@@ -10,8 +10,10 @@ except ImportError:
     from Queue import Queue, Empty
 from functools import wraps
 
-from twisted.internet import reactor
 from twisted.python.failure import Failure
+from twisted.internet import reactor
+from twisted.internet.threads import blockingCallFromThread
+from twisted.internet.defer import maybeDeferred
 
 
 __all__ = ["setup", "DeferredResult", "TimeoutError"]
@@ -104,10 +106,14 @@ class _Crochet(object):
 
         When the wrapped function is called, a DeferredResult is returned.
         """
+        def runs_in_reactor(args, kwargs):
+            d = maybeDeferred(function, self._reactor, *args, **kwargs)
+            return DeferredResult(d)
+
         @wraps(function)
         def wrapper(*args, **kwargs):
-            self._reactor.callFromThread(
-                function, self._reactor, *args, **kwargs)
+            return blockingCallFromThread(self._reactor, runs_in_reactor, args,
+                                          kwargs)
         return wrapper
 
 

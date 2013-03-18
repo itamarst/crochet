@@ -139,3 +139,61 @@ class InEventLoopTests(TestCase):
         func(1, 2, c=3)
         self.assertEqual(calls, [(1, 2, 3)])
 
+    def make_wrapped_function(self):
+        """
+        Return a function wrapped with in_event_loop that returns its first argument.
+        """
+        myreactor = FakeReactor()
+        c = _Crochet(myreactor, lambda f, g: None)
+
+        @c.in_event_loop
+        def passthrough(reactor, argument):
+            return argument
+        return passthrough
+
+    def test_deferred_success_result(self):
+        """
+        If the underlying function returns a Deferred, the wrapper returns a
+        DeferredResult hooked up to the Deferred.
+        """
+        passthrough = self.make_wrapped_function()
+        result = passthrough(succeed(123))
+        self.assertIsInstance(result, DeferredResult)
+        self.assertEqual(result.result(), 123)
+
+    def test_deferred_failure_result(self):
+        """
+        If the underlying function returns a Deferred, the wrapper returns a
+        DeferredResult hooked up to the Deferred that can deal with failures
+        as well.
+        """
+        passthrough = self.make_wrapped_function()
+        result = passthrough(fail(ZeroDivisionError()))
+        self.assertIsInstance(result, DeferredResult)
+        self.assertRaises(ZeroDivisionError, result.result)
+
+    def test_regular_result(self):
+        """
+        If the underlying function returns a non-Deferred, the wrapper returns
+        a DeferredResult hooked up to a Deferred wrapping the result.
+        """
+        passthrough = self.make_wrapped_function()
+        result = passthrough(123)
+        self.assertIsInstance(result, DeferredResult)
+        self.assertEqual(result.result(), 123)
+
+    def test_exception_result(self):
+        """
+        If the underlying function throws an exception, the wrapper returns a
+        DeferredResult hooked up to a Deferred wrapping the exception.
+        """
+        myreactor = FakeReactor()
+        c = _Crochet(myreactor, lambda f, g: None)
+
+        @c.in_event_loop
+        def raiser(reactor):
+            1/0
+
+        result = raiser()
+        self.assertIsInstance(result, DeferredResult)
+        self.assertRaises(ZeroDivisionError, result.result)
