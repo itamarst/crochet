@@ -10,6 +10,7 @@ except ImportError:
     from Queue import Queue
 
 from twisted.internet import reactor
+from twisted.python.failure import Failure
 
 
 __all__ = ["setup"]
@@ -47,7 +48,11 @@ class DeferredResult(object):
         Additional calls to this function will have the same behavior as the
         first call.
         """
-        return self._queue.get()
+        result = self._queue.get()
+        self._queue.put(result) # allow next result() call to get a value out
+        if isinstance(result, Failure):
+            raise result.value
+        return result
 
 
 class _Crochet(object):
