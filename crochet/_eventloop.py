@@ -70,6 +70,46 @@ class DeferredResult(object):
         return result
 
 
+class ThreadLogObserver(object):
+    """
+    A log observer that wraps another observer, and calls it in a thread.
+
+    In particular, used to wrap PythonLoggingObserver, so that blocking
+    logging.py Handlers don't block the event loop.
+    """
+
+    _DONE = object()
+
+    def __init__(self, observer):
+        self._observer = observer
+        self._queue = Queue()
+        self._thread = threading.Thread(target=self._reader)
+        self._thread.start()
+
+    def _reader(self):
+        """
+        Runs in a thread, reads messages from a queue and writes them to
+        the wrapped observer.
+        """
+        while True:
+            item = self._queue.get()
+            if item is self._DONE:
+                return
+            self._observer(item)
+
+    def stop(self):
+        """
+        Stop the thread.
+        """
+        self._queue.put(self._DONE)
+
+    def __call__(self, msg):
+        """
+        A log observer that writes to a queue.
+        """
+        self._queue.put(msg)
+
+
 class EventLoop(object):
     """
     Initialization infrastructure for running a reactor in a thread.
@@ -96,11 +136,14 @@ class EventLoop(object):
                 target=lambda: self._reactor.run(installSignalHandlers=False))
             t.start()
             if self._startLoggingWithObserver:
+                observer = ThreadLogObserver(PythonLoggingObserver().emit)
                 self._reactor.callFromThread(
-                    self._startLoggingWithObserver, PythonLoggingObserver().emit, False)
+                    self._startLoggingWithObserver, observer, False)
+                # We only want to stop the logging thread once the reactor has
+                # shut down:
+                self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
             self._atexit_register(self._reactor.callFromThread,
                                   self._reactor.stop)
-
 
     def in_event_loop(self, function):
         """

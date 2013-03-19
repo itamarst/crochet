@@ -9,7 +9,7 @@ import threading
 from twisted.trial.unittest import TestCase
 from twisted.python.log import PythonLoggingObserver
 
-from .._eventloop import EventLoop
+from .._eventloop import EventLoop, ThreadLogObserver
 
 
 class FakeReactor(object):
@@ -23,6 +23,7 @@ class FakeReactor(object):
     def __init__(self):
         self.started = threading.Event()
         self.stopping = False
+        self.events = []
 
     def run(self, installSignalHandlers=True):
         self.runs += 1
@@ -37,6 +38,9 @@ class FakeReactor(object):
 
     def stop(self):
         self.stopping = True
+
+    def addSystemEventTrigger(self, when, event, f):
+        self.events.append((when, event, f))
 
 
 class SetupTests(TestCase):
@@ -90,20 +94,71 @@ class SetupTests(TestCase):
 
     def test_logging(self):
         """
-        setup() registers a PythonLogging log observer, removing the default
-        log observer.
+        setup() registers a PythonLoggingObserver wrapped in a
+        ThreadLogObserver, removing the default log observer.
         """
         logging = []
         def fakeStartLoggingWithObserver(observer, setStdout=1):
+            self.assertIsInstance(observer, ThreadLogObserver)
+            wrapped = observer._observer
             expected = PythonLoggingObserver.emit
             # Python 3 and 2 differ in value of __func__:
             expected = getattr(expected, "__func__", expected)
-            self.assertIdentical(observer.__func__, expected)
+            self.assertIdentical(wrapped.__func__, expected)
             self.assertEqual(setStdout, False)
             self.assertTrue(reactor.in_call_from_thread)
-            logging.append(True)
+            logging.append(observer)
 
         reactor = FakeReactor()
         loop = EventLoop(reactor, lambda f, g: None, fakeStartLoggingWithObserver)
         loop.setup()
         self.assertTrue(logging)
+        logging[0].stop()
+
+    def test_stop_logging_on_exit(self):
+        """
+        setup() registers a reactor shutdown event that stops the logging thread.
+        """
+        observers = []
+        reactor = FakeReactor()
+        s = EventLoop(reactor, lambda f, arg: None,
+                      lambda observer, setStdout=1: observers.append(observer))
+        s.setup()
+        self.addCleanup(observers[0].stop)
+        self.assertEqual(reactor.events,
+                         [("after", "shutdown", observers[0].stop)])
+
+
+class ThreadLogObserverTest(TestCase):
+    """
+    Tests for ThreadLogObserver.
+    """
+    def test_stop(self):
+        """
+        ThreadLogObserver.stop() stops the thread started in __init__.
+        """
+        threadLog = ThreadLogObserver(None)
+        self.assertTrue(threadLog._thread.is_alive())
+        threadLog.stop()
+        threadLog._thread.join()
+        self.assertFalse(threadLog._thread.is_alive())
+
+    def test_emit(self):
+        """
+        ThreadLogObserver.emit runs the wrapped observer's in its thread, with
+        the given message.
+        """
+        log = []
+        def observer(msg):
+            log.append((threading.current_thread().ident, msg))
+
+        threadLog = ThreadLogObserver(observer)
+        ident = threadLog._thread.ident
+        msg1 = {}
+        msg2 = {"a": "b"}
+        threadLog(msg1)
+        threadLog(msg2)
+        threadLog.stop()
+        # Wait for writing to finish:
+        threadLog._thread.join()
+        self.assertEqual(log, [(ident, msg1), (ident, msg2)])
