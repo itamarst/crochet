@@ -17,6 +17,8 @@ from twisted.internet.threads import blockingCallFromThread
 from twisted.internet.defer import maybeDeferred
 from twisted.internet import reactor
 
+from ._util import synchronized
+
 
 class TimeoutError(Exception):
     """
@@ -121,6 +123,7 @@ class EventLoop(object):
         self._started = False
         self._lock = threading.Lock()
 
+    @synchronized
     def setup(self):
         """
         Initialize the crochet library.
@@ -128,22 +131,21 @@ class EventLoop(object):
         This must be called at least once before the library can be used, and
         can be called multiple times.
         """
-        with self._lock:
-            if self._started:
-                return
-            self._started = True
-            t = threading.Thread(
-                target=lambda: self._reactor.run(installSignalHandlers=False))
-            t.start()
-            if self._startLoggingWithObserver:
-                observer = ThreadLogObserver(PythonLoggingObserver().emit)
-                self._reactor.callFromThread(
-                    self._startLoggingWithObserver, observer, False)
-                # We only want to stop the logging thread once the reactor has
-                # shut down:
-                self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
-            self._atexit_register(self._reactor.callFromThread,
-                                  self._reactor.stop)
+        if self._started:
+            return
+        self._started = True
+        t = threading.Thread(
+            target=lambda: self._reactor.run(installSignalHandlers=False))
+        t.start()
+        if self._startLoggingWithObserver:
+            observer = ThreadLogObserver(PythonLoggingObserver().emit)
+            self._reactor.callFromThread(
+                self._startLoggingWithObserver, observer, False)
+            # We only want to stop the logging thread once the reactor has
+            # shut down:
+            self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
+        self._atexit_register(self._reactor.callFromThread,
+                              self._reactor.stop)
 
     def in_event_loop(self, function):
         """

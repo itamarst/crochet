@@ -90,7 +90,7 @@ class SetupTests(TestCase):
         """
         All code in setup() is protected by a lock.
         """
-    test_runs_with_lock.skip = "Need to figure out how to do this decently"
+        self.assertTrue(EventLoop.setup.synchronized)
 
     def test_logging(self):
         """
