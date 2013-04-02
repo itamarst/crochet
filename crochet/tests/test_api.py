@@ -12,7 +12,9 @@ from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 
 from .._eventloop import EventLoop, DeferredResult, TimeoutError
 from .test_setup import FakeReactor
-from .. import _main, setup, in_event_loop
+from .. import _main, setup, in_event_loop, resultstore
+from .._resultstore import ResultStore
+
 
 class DeferredResultTests(TestCase):
     """
@@ -222,7 +224,7 @@ class PublicAPITests(TestCase):
     """
     Tests for the public API.
     """
-    def test_api(self):
+    def test_eventloop_api(self):
         """
         An EventLoop object configured with the real reactor and atexit.register
         is exposed via its public methods.
@@ -236,3 +238,9 @@ class PublicAPITests(TestCase):
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, atexit.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)
+
+    def test_resultstore(self):
+        """
+        A ResultStore is exposed.
+        """
+        self.assertIsInstance(resultstore, ResultStore)
