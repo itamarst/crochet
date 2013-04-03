@@ -8,10 +8,11 @@ import atexit
 from twisted.internet import reactor
 from twisted.python.log import startLoggingWithObserver
 
+from crochet import _shutdown
 from ._eventloop import DeferredResult, TimeoutError, EventLoop
 from ._resultstore import ResultStore
 
-_main = EventLoop(reactor, atexit.register, startLoggingWithObserver)
+_main = EventLoop(reactor, _shutdown.register, startLoggingWithObserver)
 setup = _main.setup
 in_event_loop = _main.in_event_loop
 resultstore = ResultStore()

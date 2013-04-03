@@ -226,17 +226,17 @@ class PublicAPITests(TestCase):
     """
     def test_eventloop_api(self):
         """
-        An EventLoop object configured with the real reactor and atexit.register
-        is exposed via its public methods.
+        An EventLoop object configured with the real reactor and
+        _shutdown.register is exposed via its public methods.
         """
         from twisted.internet import reactor
         from twisted.python.log import startLoggingWithObserver
-        import atexit
+        from crochet import _shutdown
         self.assertIsInstance(_main, EventLoop)
         self.assertEqual(_main.setup, setup)
         self.assertEqual(_main.in_event_loop, in_event_loop)
         self.assertIdentical(_main._reactor, reactor)
-        self.assertIdentical(_main._atexit_register, atexit.register)
+        self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)
 
     def test_resultstore(self):
