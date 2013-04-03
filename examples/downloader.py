@@ -5,7 +5,7 @@ A flask web application that downloads a page in the background.
 
 import logging
 from flask import Flask, session, escape
-from crochet import setup, in_event_loop, resultstore, TimeoutError
+from crochet import setup, in_event_loop, retrieve_result, TimeoutError
 
 # Can be called multiple times with no ill-effect:
 setup()
@@ -16,29 +16,27 @@ app = Flask(__name__)
 @in_event_loop
 def download_page(reactor, url):
     """
-    Download a page.
+    Download a page, after a 10 second delay for demonstration purposes.
     """
     from twisted.web.client import getPage
-    return getPage(url)
+    from twisted.internet.task import deferLater
+    return deferLater(reactor, 10, getPage, url)
 
 
 @app.route('/')
 def index():
-    url = 'http://www.google.com'
     if 'download' not in session:
         # No download, start it in background:
-        result = download_page(url)
-        uid = resultstore.store(result)
-        session['download'] = uid
+        session['download'] = download_page('http://www.google.com').stash()
         return "Starting download, refresh to track progress."
 
-    result = resultstore.retrieve(session['download'])
+    # retrieval is a one-time operation, so session value cannot be reused:
+    result = retrieve_result(session.pop('download'))
     try:
-        download = result.result(0)
-        del session['download']
+        download = result.result(timeout=0.0)
         return "Downloaded: " + escape(download)
     except TimeoutError:
-        session['download'] = resultstore.store(result)
+        session['download'] = result.stash()
         return "Download in progress..."
 
 

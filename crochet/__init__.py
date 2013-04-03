@@ -9,13 +9,12 @@ from twisted.internet import reactor
 from twisted.python.log import startLoggingWithObserver
 
 from crochet import _shutdown
-from ._eventloop import DeferredResult, TimeoutError, EventLoop
-from ._resultstore import ResultStore
+from ._eventloop import DeferredResult, TimeoutError, EventLoop, _store
 
 _main = EventLoop(reactor, _shutdown.register, startLoggingWithObserver)
 setup = _main.setup
 in_event_loop = _main.in_event_loop
-resultstore = ResultStore()
+retrieve_result = _store.retrieve
 
 
 __all__ = ["setup", "in_event_loop", "DeferredResult", "TimeoutError", "resultstore"]

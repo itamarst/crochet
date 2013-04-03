@@ -12,8 +12,7 @@ from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 
 from .._eventloop import EventLoop, DeferredResult, TimeoutError
 from .test_setup import FakeReactor
-from .. import _main, setup, in_event_loop, resultstore
-from .._resultstore import ResultStore
+from .. import _main, setup, in_event_loop, retrieve_result, _store
 
 
 class DeferredResultTests(TestCase):
@@ -123,6 +122,14 @@ class DeferredResultTests(TestCase):
         dr.cancel()
         self.assertTrue(cancelled[0])
         self.assertIsInstance(cancelled[1].value, CancelledError)
+
+    def test_stash(self):
+        """
+        DeferredResult.stash() stores the object in the global ResultStore.
+        """
+        dr = DeferredResult(Deferred())
+        uid = dr.stash()
+        self.assertIdentical(dr, _store.retrieve(uid))
 
 
 class InEventLoopTests(TestCase):
@@ -239,8 +246,10 @@ class PublicAPITests(TestCase):
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)
 
-    def test_resultstore(self):
+    def test_retrieve_result(self):
         """
-        A ResultStore is exposed.
+        retrieve_result() calls retrieve() on the global ResultStore.
         """
-        self.assertIsInstance(resultstore, ResultStore)
+        dr = DeferredResult(Deferred())
+        uid = dr.stash()
+        self.assertIdentical(dr, retrieve_result(uid))

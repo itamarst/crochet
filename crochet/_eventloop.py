@@ -18,6 +18,9 @@ from twisted.internet.defer import maybeDeferred
 from twisted.internet import reactor
 
 from ._util import synchronized
+from ._resultstore import ResultStore
+
+_store = ResultStore()
 
 
 class TimeoutError(Exception):
@@ -70,6 +73,15 @@ class DeferredResult(object):
         if isinstance(result, Failure):
             raise result.value
         return result
+
+    def stash(self):
+        """
+        Store the DeferredResult in memory for later retrieval.
+
+        Returns a integer uid which can be passed to crochet.retrieve_result()
+        to retrieve the instance later on.
+        """
+        return _store.store(self)
 
 
 class ThreadLogObserver(object):

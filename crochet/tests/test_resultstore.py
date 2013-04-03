@@ -25,13 +25,39 @@ class ResultStoreTests(TestCase):
         self.assertIdentical(store.retrieve(uid), dr)
 
     def test_retrieve_only_once(self):
-        pass
+        """
+        Once a result is retrieved, it can no longer be retrieved again.
+        """
+        store = ResultStore()
+        dr = DeferredResult(Deferred())
+        uid = store.store(dr)
+        store.retrieve(uid)
+        self.assertRaises(KeyError, store.retrieve, uid)
 
     def test_synchronized(self):
-        pass
+        """
+        store() and retrieve() are synchronized.
+        """
+        self.assertTrue(ResultStore.store.synchronized)
+        self.assertTrue(ResultStore.retrieve.synchronized)
 
     def test_uniqueness(self):
-        pass
+        """
+        Each store() operation returns a larger number, ensuring uniqueness.
+        """
+        store = ResultStore()
+        dr = DeferredResult(Deferred())
+        previous = store.store(dr)
+        for i in range(100):
+            store.retrieve(previous)
+            dr = DeferredResult(Deferred())
+            uid = store.store(dr)
+            self.assertTrue(uid > previous)
+            previous = uid
 
     def test_log_errors(self):
-        pass
+        """
+        Unretrieved DeferredResults have their errors, if any, logged on
+        shutdown.
+        """
+    test_log_errors.skip = "Not yet implemented"
