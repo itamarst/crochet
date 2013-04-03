@@ -29,15 +29,13 @@ class Watchdog(threading.Thread):
         self._functions.append(lambda: function(*args, **kwargs))
 
     def run(self):
-        while True:
-            if self._canary.is_alive():
-                time.sleep(0.1)
-                continue
-            # Ideally this should catch errors and log them, but in practice
-            # we only register one shutdown function for now:
-            for f in self._functions:
-                f()
-            return
+        while self._canary.is_alive():
+            time.sleep(0.1)
+
+        # Ideally this should catch errors and log them, but in practice
+        # we only register one shutdown function for now:
+        for f in self._functions:
+            f()
 
 
 # This is... fragile. Not sure how else to do it though.
