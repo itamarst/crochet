@@ -5,14 +5,15 @@ env:
     - TWISTED=Twisted==12.1
     - TWISTED=Twisted==12.2
     - TWISTED=Twisted==12.3
-    - TWISTED=svn+svn://svn.twistedmatrix.com/svn/Twisted/trunk
+    - TWISTED=Twisted==13.0
 
 language: python
 
 python:
     - 2.6
     - 2.7
-    - pypy
+# Having some issues I need to investigate:
+#    - pypy
 # In theory Python 3.3 should work, but that requires Twisted to be more
 # easily installable on 3.3...
 #    - 3.3
