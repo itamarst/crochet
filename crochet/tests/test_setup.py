@@ -128,6 +128,20 @@ class SetupTests(TestCase):
         self.assertEqual(reactor.events,
                          [("after", "shutdown", observers[0].stop)])
 
+    def test_start_watchdog_thread(self):
+        """
+        setup() starts the shutdown watchdog thread.
+        """
+        class FakeThread:
+            started = False
+            def start(self):
+                self.started = True
+        thread = FakeThread()
+        reactor = FakeReactor()
+        loop = EventLoop(reactor, lambda *args: None, watchdog_thread=thread)
+        loop.setup()
+        self.assertTrue(thread.started)
+
 
 class ThreadLogObserverTest(TestCase):
     """

@@ -245,6 +245,7 @@ class PublicAPITests(TestCase):
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)
+        self.assertIdentical(_main._watchdog_thread, _shutdown._watchdog)
 
     def test_retrieve_result(self):
         """

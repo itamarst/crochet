@@ -19,6 +19,7 @@ from twisted.internet import reactor
 
 from ._util import synchronized
 from ._resultstore import ResultStore
+from ._shutdown import _watchdog
 
 _store = ResultStore()
 
@@ -128,12 +129,15 @@ class EventLoop(object):
     """
     Initialization infrastructure for running a reactor in a thread.
     """
-    def __init__(self, reactor, atexit_register, startLoggingWithObserver=None):
+    def __init__(self, reactor, atexit_register,
+                 startLoggingWithObserver=None,
+                 watchdog_thread=None):
         self._reactor = reactor
         self._atexit_register = atexit_register
         self._startLoggingWithObserver = startLoggingWithObserver
         self._started = False
         self._lock = threading.Lock()
+        self._watchdog_thread = watchdog_thread
 
     @synchronized
     def setup(self):
@@ -158,6 +162,8 @@ class EventLoop(object):
             self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
         self._atexit_register(self._reactor.callFromThread,
                               self._reactor.stop)
+        if self._watchdog_thread is not None:
+            self._watchdog_thread.start()
 
     def in_event_loop(self, function):
         """
