@@ -16,11 +16,10 @@ app = Flask(__name__)
 @in_event_loop
 def download_page(reactor, url):
     """
-    Download a page, after a 10 second delay for demonstration purposes.
+    Download a page.
     """
     from twisted.web.client import getPage
-    from twisted.internet.task import deferLater
-    return deferLater(reactor, 10, getPage, url)
+    return getPage(url)
 
 
 @app.route('/')
