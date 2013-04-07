@@ -14,9 +14,10 @@ from ._eventloop import DeferredResult, TimeoutError, EventLoop, _store
 _main = EventLoop(reactor, _shutdown.register, startLoggingWithObserver,
                   _watchdog)
 setup = _main.setup
+no_setup = _main.no_setup
 in_event_loop = _main.in_event_loop
 retrieve_result = _store.retrieve
 
 
 __all__ = ["setup", "in_event_loop", "DeferredResult", "TimeoutError",
-           "resultstore"]
+           "resultstore", "no_setup"]

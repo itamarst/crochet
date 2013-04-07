@@ -43,6 +43,13 @@ class FakeReactor(object):
         self.events.append((when, event, f))
 
 
+class FakeThread:
+    started = False
+
+    def start(self):
+        self.started = True
+
+
 class SetupTests(TestCase):
     """
     Tests for setup().
@@ -93,9 +100,10 @@ class SetupTests(TestCase):
 
     def test_runs_with_lock(self):
         """
-        All code in setup() is protected by a lock.
+        All code in setup() and no_setup() is protected by a lock.
         """
         self.assertTrue(EventLoop.setup.synchronized)
+        self.assertTrue(EventLoop.no_setup.synchronized)
 
     def test_logging(self):
         """
@@ -137,15 +145,40 @@ class SetupTests(TestCase):
         """
         setup() starts the shutdown watchdog thread.
         """
-        class FakeThread:
-            started = False
-            def start(self):
-                self.started = True
         thread = FakeThread()
         reactor = FakeReactor()
         loop = EventLoop(reactor, lambda *args: None, watchdog_thread=thread)
         loop.setup()
         self.assertTrue(thread.started)
+
+    def test_no_setup(self):
+        """
+        If called first, no_setup() makes subsequent calls to setup() do
+        nothing.
+        """
+        observers = []
+        atexit = []
+        thread = FakeThread()
+        reactor = FakeReactor()
+        loop = EventLoop(reactor, lambda f, *arg: atexit.append(f),
+                         lambda observer, *a, **kw: observers.append(observer),
+                         watchdog_thread=thread)
+
+        loop.no_setup()
+        loop.setup()
+        self.assertFalse(observers)
+        self.assertFalse(atexit)
+        self.assertFalse(reactor.runs)
+        self.assertFalse(thread.started)
+
+    def test_no_setup_after_setup(self):
+        """
+        If called after setup(), no_setup() throws an exception.
+        """
+        reactor = FakeReactor()
+        s = EventLoop(reactor, lambda f, *g: None)
+        s.setup()
+        self.assertRaises(RuntimeError, s.no_setup)
 
 
 class ThreadLogObserverTest(TestCase):

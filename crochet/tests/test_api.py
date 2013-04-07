@@ -13,7 +13,7 @@ from twisted.python.failure import Failure
 
 from .._eventloop import EventLoop, DeferredResult, TimeoutError
 from .test_setup import FakeReactor
-from .. import _main, setup, in_event_loop, retrieve_result, _store
+from .. import _main, setup, in_event_loop, retrieve_result, _store, no_setup
 
 
 class DeferredResultTests(TestCase):
@@ -268,6 +268,7 @@ class PublicAPITests(TestCase):
         from crochet import _shutdown
         self.assertIsInstance(_main, EventLoop)
         self.assertEqual(_main.setup, setup)
+        self.assertEqual(_main.no_setup, no_setup)
         self.assertEqual(_main.in_event_loop, in_event_loop)
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, _shutdown.register)

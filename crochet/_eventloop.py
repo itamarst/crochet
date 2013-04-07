@@ -179,6 +179,9 @@ class EventLoop(object):
         """
         Initialize the crochet library.
 
+        This starts the reactor in a thread, and connect's Twisted's logs to
+        Python's standard library logging module.
+
         This must be called at least once before the library can be used, and
         can be called multiple times.
         """
@@ -200,6 +203,24 @@ class EventLoop(object):
         self._atexit_register(_store.log_errors)
         if self._watchdog_thread is not None:
             self._watchdog_thread.start()
+
+    @synchronized
+    def no_setup(self):
+        """
+        Initialize the crochet library with no side effects.
+
+        No reactor will be started, logging is uneffected, etc.. Future calls
+        to setup() will have no effect. This is useful for applications that
+        intend to run Twisted's reactor themselves, and so do not want
+        libraries using crochet to attempt to start it on their own.
+
+        If no_setup() is called after setup(), a RuntimeError is raised.
+        """
+        if self._started:
+            raise RuntimeError("no_setup() is intended to be called once, by a"
+                               " Twisted application, before any libraries "
+                               "using crochet are imported and call setup().")
+        self._started = True
 
     def in_event_loop(self, function):
         """
