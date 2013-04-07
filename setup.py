@@ -5,7 +5,7 @@ except ImportError:
 
 setup(
     name='crochet',
-    version='0.1',
+    version='0.5',
     description="Asynchronous calls for threaded applications",
     install_requires=[
         "Twisted>=11.0",
