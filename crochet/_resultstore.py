@@ -4,6 +4,8 @@ In-memory store for DeferredResults.
 
 import threading
 
+from twisted.python import log
+
 from ._util import synchronized
 
 
@@ -41,3 +43,14 @@ class ResultStore(object):
         Return the given DeferredResult, and remove it from the store.
         """
         return self._stored.pop(result_id)
+
+    @synchronized
+    def log_errors(self):
+        """
+        Log errors for all stored DeferredResults that have error results.
+        """
+        for result in self._stored.values():
+            failure = result.original_failure()
+            if failure is not None:
+                log.err(failure, "Unhandled error in stashed DeferredResult:")
+

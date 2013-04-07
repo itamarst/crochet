@@ -9,7 +9,7 @@ import threading
 from twisted.trial.unittest import TestCase
 from twisted.python.log import PythonLoggingObserver
 
-from .._eventloop import EventLoop, ThreadLogObserver
+from .._eventloop import EventLoop, ThreadLogObserver, _store
 
 
 class FakeReactor(object):
@@ -53,7 +53,7 @@ class SetupTests(TestCase):
         With it first call, setup() runs the reactor in a thread.
         """
         reactor = FakeReactor()
-        EventLoop(reactor, lambda f, g: None).setup()
+        EventLoop(reactor, lambda f, *g: None).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
         self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
@@ -64,7 +64,7 @@ class SetupTests(TestCase):
         The second call to setup() does nothing.
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, g: None)
+        s = EventLoop(reactor, lambda f, *g: None)
         s.setup()
         s.setup()
         reactor.started.wait(5)
@@ -72,19 +72,24 @@ class SetupTests(TestCase):
 
     def test_stop_on_exit(self):
         """
-        setup() registers an exit handler that stops the reactor.
+        setup() registers an exit handler that stops the reactor, and an exit
+        handler that logs stashed DeferredResults.
         """
         atexit = []
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, arg: atexit.append((f, arg)))
+        s = EventLoop(reactor, lambda f, *args: atexit.append((f, args)))
         s.setup()
-        self.assertTrue(atexit)
+        self.assertEqual(len(atexit), 2)
         self.assertFalse(reactor.stopping)
-        f, arg = atexit[0]
+        f, args = atexit[0]
         self.assertEqual(f, reactor.callFromThread)
-        self.assertEqual(arg, reactor.stop)
-        f(arg)
+        self.assertEqual(args, (reactor.stop,))
+        f(*args)
         self.assertTrue(reactor.stopping)
+        f, args = atexit[1]
+        self.assertEqual(f, _store.log_errors)
+        self.assertEqual(args, ())
+        f(*args) # make sure it doesn't throw an exception
 
     def test_runs_with_lock(self):
         """
@@ -110,7 +115,7 @@ class SetupTests(TestCase):
             logging.append(observer)
 
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda f, g: None, fakeStartLoggingWithObserver)
+        loop = EventLoop(reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
         loop.setup()
         self.assertTrue(logging)
         logging[0].stop()
@@ -121,7 +126,7 @@ class SetupTests(TestCase):
         """
         observers = []
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, arg: None,
+        s = EventLoop(reactor, lambda f, *arg: None,
                       lambda observer, setStdout=1: observers.append(observer))
         s.setup()
         self.addCleanup(observers[0].stop)

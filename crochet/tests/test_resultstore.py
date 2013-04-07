@@ -3,7 +3,7 @@ Tests for _resultstore.
 """
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, fail, succeed
 
 from .._resultstore import ResultStore
 from .._eventloop import DeferredResult
@@ -40,6 +40,7 @@ class ResultStoreTests(TestCase):
         """
         self.assertTrue(ResultStore.store.synchronized)
         self.assertTrue(ResultStore.retrieve.synchronized)
+        self.assertTrue(ResultStore.log_errors.synchronized)
 
     def test_uniqueness(self):
         """
@@ -60,4 +61,13 @@ class ResultStoreTests(TestCase):
         Unretrieved DeferredResults have their errors, if any, logged on
         shutdown.
         """
-    test_log_errors.skip = "Not yet implemented"
+        store = ResultStore()
+        store.store(DeferredResult(Deferred()))
+        store.store(DeferredResult(fail(ZeroDivisionError())))
+        store.store(DeferredResult(succeed(1)))
+        store.store(DeferredResult(fail(RuntimeError())))
+        store.log_errors()
+        excs = self.flushLoggedErrors(ZeroDivisionError)
+        self.assertEqual(len(excs), 1)
+        excs = self.flushLoggedErrors(RuntimeError)
+        self.assertEqual(len(excs), 1)

@@ -53,9 +53,9 @@ class DeferredResult(object):
         """
         self._reactor.callFromThread(self._deferred.cancel)
 
-    def result(self, timeout=None):
+    def _result(self, timeout=None):
         """
-        Return the result, or throw an exception if result is a failure.
+        Return the result, if available.
 
         It may take an unknown amount of time to return the result, so a
         timeout option is provided. If the given number of seconds pass with
@@ -63,14 +63,30 @@ class DeferredResult(object):
 
         If a previous call timed out, additional calls to this function will
         still wait for a result and return it if available. If a result was
-        returned or raised on the first call, additional calls will
-        return/raise the same result.
+        returned on one call, additional calls will return/raise the same
+        result.
         """
         try:
             result = self._queue.get(timeout=timeout)
         except Empty:
             raise TimeoutError()
-        self._queue.put(result) # allow next result() call to get a value out
+        self._queue.put(result) # allow next _result() call to get a value out
+        return result
+
+    def result(self, timeout=None):
+        """
+        Return the result, or throw the exception if result is a failure.
+
+        It may take an unknown amount of time to return the result, so a
+        timeout option is provided. If the given number of seconds pass with
+        no result, a TimeoutError will be thrown.
+
+        If a previous call timed out, additional calls to this function will
+        still wait for a result and return it if available. If a result was
+        returned or raised on one call, additional calls will return/raise the
+        same result.
+        """
+        result = self._result(timeout)
         if isinstance(result, Failure):
             raise result.value
         return result
@@ -83,6 +99,25 @@ class DeferredResult(object):
         to retrieve the instance later on.
         """
         return _store.store(self)
+
+    def original_failure(self):
+        """
+        Return the underlying Failure object, if the result is an error.
+
+        If no result is yet available, or the result was not an error, None is
+        returned.
+
+        This method is useful if you want to get the original traceback for an
+        error result.
+        """
+        try:
+            result = self._result(0.0)
+        except TimeoutError:
+            return None
+        if isinstance(result, Failure):
+            return result
+        else:
+            return None
 
 
 class ThreadLogObserver(object):
@@ -162,6 +197,7 @@ class EventLoop(object):
             self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
         self._atexit_register(self._reactor.callFromThread,
                               self._reactor.stop)
+        self._atexit_register(_store.log_errors)
         if self._watchdog_thread is not None:
             self._watchdog_thread.start()
 

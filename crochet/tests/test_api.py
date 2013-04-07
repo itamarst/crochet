@@ -9,6 +9,7 @@ import time
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
+from twisted.python.failure import Failure
 
 from .._eventloop import EventLoop, DeferredResult, TimeoutError
 from .test_setup import FakeReactor
@@ -130,6 +131,32 @@ class DeferredResultTests(TestCase):
         dr = DeferredResult(Deferred())
         uid = dr.stash()
         self.assertIdentical(dr, _store.retrieve(uid))
+
+    def test_original_failure(self):
+        """
+        original_failure() returns the underlying Failure of the Deferred
+        wrapped by the DeferredResult.
+        """
+        try:
+            1/0
+        except:
+            f = Failure()
+        dr = DeferredResult(fail(f))
+        self.assertIdentical(dr.original_failure(), f)
+
+    def test_original_failure_no_result(self):
+        """
+        If there is no result yet, original_failure() returns None.
+        """
+        dr = DeferredResult(Deferred())
+        self.assertIdentical(dr.original_failure(), None)
+
+    def test_original_failure_not_error(self):
+        """
+        If the result is not an error, original_failure() returns None.
+        """
+        dr = DeferredResult(succeed(3))
+        self.assertIdentical(dr.original_failure(), None)
 
 
 class InEventLoopTests(TestCase):
