@@ -32,7 +32,7 @@ def index():
     # retrieval is a one-time operation, so session value cannot be reused:
     result = retrieve_result(session.pop('download'))
     try:
-        download = result.result(timeout=0.0)
+        download = result.wait(timeout=0.1)
         return "Downloaded: " + escape(download)
     except TimeoutError:
         session['download'] = result.stash()

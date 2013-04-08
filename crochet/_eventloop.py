@@ -73,7 +73,7 @@ class DeferredResult(object):
         self._queue.put(result) # allow next _result() call to get a value out
         return result
 
-    def result(self, timeout=None):
+    def wait(self, timeout=None):
         """
         Return the result, or throw the exception if result is a failure.
 
