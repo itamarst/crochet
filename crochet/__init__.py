@@ -4,14 +4,13 @@ Crochet!
 
 from __future__ import absolute_import
 
-import atexit
 from twisted.internet import reactor
 from twisted.python.log import startLoggingWithObserver
 
-from ._shutdown import _watchdog
+from ._shutdown import _watchdog, register
 from ._eventloop import DeferredResult, TimeoutError, EventLoop, _store
 
-_main = EventLoop(reactor, _shutdown.register, startLoggingWithObserver,
+_main = EventLoop(reactor, register, startLoggingWithObserver,
                   _watchdog)
 setup = _main.setup
 no_setup = _main.no_setup
@@ -21,4 +20,4 @@ retrieve_result = _store.retrieve
 __version__ = "0.5"
 
 __all__ = ["setup", "in_event_loop", "DeferredResult", "TimeoutError",
-           "resultstore", "no_setup"]
+           "retrieve_result", "no_setup"]
