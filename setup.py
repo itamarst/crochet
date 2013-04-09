@@ -19,7 +19,7 @@ setup(
     version='0.5.0',
     description="Use Twisted from threaded applications",
     install_requires=[
-        "Twisted>=11.0",
+        "Twisted>=11.1",
         ],
     keywords="twisted threading",
     license="MIT",

@@ -1,5 +1,4 @@
 env:
-    - TWISTED=Twisted==11.0
     - TWISTED=Twisted==11.1
     - TWISTED=Twisted==12.0
     - TWISTED=Twisted==12.1
