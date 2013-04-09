@@ -134,7 +134,7 @@ calls to ``setup()`` to do nothing. Thus, an application that will run the
 Twisted reactor but also wants to use a Crochet-using library must run it
 first::
 
-    from crochet import no_setup()
+    from crochet import no_setup
     no_setup()
     # Only now do we import libraries that might run crochet.setup():
     import blockinglib
