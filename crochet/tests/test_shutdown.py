@@ -49,7 +49,10 @@ register(stop, 1, y=2)
 
 sys.exit()
 """
-        result = subprocess.check_output([sys.executable, "-c", program])
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   stdout=subprocess.PIPE)
+        result = process.stdout.read()
+        self.assertEqual(process.wait(), 0)
         self.assertEqual(result, b"byebye")
 
     def test_watchdog(self):
