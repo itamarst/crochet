@@ -17,10 +17,10 @@ Here's an example of a program using Crochet::
   import sys
 
   from twisted.web.client import getPage
-  from crochet import setup, in_event_loop
+  from crochet import setup, in_reactor
   crochet.setup()
 
-  @in_event_loop
+  @in_reactor
   def download_page(reactor, url):
       return getPage(url)
 
@@ -34,13 +34,13 @@ Run on the command line::
   <!doctype html><html itemscope="itemscope" ... etc. ...
 
 Notice that you get a completely blocking interface to Twisted, and do not
-need to run the event loop yourself.
+need to run the Twisted reactor, the event loop, yourself.
 
 
 Features
 --------
 
-* Runs Twisted's reactor (the event loop) in a thread it manages.
+* Runs Twisted's reactor in a thread it manages.
 * Hooks up Twisted's log system to the Python standard library ``logging``
   framework. Unlike Twisted's built-in ``logging`` bridge, this includes
   support for blocking `Handler` instances.
@@ -51,15 +51,15 @@ Using Crochet in Blocking Code
 ------------------------------
 
 Using Crochet involves three parts: setup, setting up functions that call into
-Twisted's event loop, and using those functions.
+Twisted's reactor, and using those functions.
 
 
 Setup
 ^^^^^
 
 Crochet does a number of things for you as part of setup. Most significantly,
-it runs Twisted's reactor (the event loop) in a thread it manages. Doing
-setup is easy, just call the ``setup()`` function::
+it runs Twisted's reactor in a thread it manages. Doing setup is easy, just
+call the ``setup()`` function::
 
   from crochet import setup
   setup()
@@ -69,17 +69,17 @@ fine; if more than one library does ``crochet.setup()`` only the first one
 will do anything.
 
 Creating Asynchronous Functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now that you've got the event loop running, the next stage is defining some
+Now that you've got the reactor running, the next stage is defining some
 functions that will run inside the Twisted reactor thread. Twisted's APIs are
 not thread-safe, and so they cannot be called directly from another
 thread. Instead, we write a function that is decorated with
-``crochet.in_event_loop``::
+``crochet.in_reactor``::
 
-  from crochet import in_event_loop
+  from crochet import in_reactor
 
-  @in_event_loop
+  @in_reactor
   def call_later(reactor, delay, f, *args, **kwargs):
       reactor.callLater(delay, f, *args, **kwargs)
 
@@ -89,8 +89,8 @@ Some points to notice:
 
 * The decorated function will get an extra argument at the start, the Twisted
   ``reactor``.
-* The code will not run in the calling thread, but rather in the event loop
-  (i.e. reactor) thread.
+* The code will not run in the calling thread, but rather in the reactor
+  thread.
 * The return result from a decorated object is a ``DeferredResult``, which
   will be discussed in the next section.
 
@@ -100,7 +100,7 @@ Asynchronous Results
 Since the code in the decorated function will be run in a separate thread, it
 cannot be returned normally. Moreover, the code may return a ``Deferred``,
 which means the result may not be available until that ``Deferred`` fires. To
-deal with that, functions decorated with ``crochet.in_event_loop`` return a
+deal with that, functions decorated with ``crochet.in_reactor`` return a
 ``crochet.DeferredResult`` instance.
 
 ``DeferredResult`` has the following methods:

@@ -16,5 +16,5 @@ setup(
     url="https://github.com/itamarst/crochet",
     maintainer='Itamar Turner-Trauring',
     maintainer_email='itamar@futurefoundries.com',
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
 )

@@ -14,10 +14,10 @@ _main = EventLoop(reactor, register, startLoggingWithObserver,
                   _watchdog)
 setup = _main.setup
 no_setup = _main.no_setup
-in_event_loop = _main.in_event_loop
+in_reactor = _main.in_reactor
 retrieve_result = _store.retrieve
 
 __version__ = "0.5"
 
-__all__ = ["setup", "in_event_loop", "DeferredResult", "TimeoutError",
+__all__ = ["setup", "in_reactor", "DeferredResult", "TimeoutError",
            "retrieve_result", "no_setup"]

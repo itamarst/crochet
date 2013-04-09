@@ -19,7 +19,6 @@ from twisted.internet import reactor
 
 from ._util import synchronized
 from ._resultstore import ResultStore
-from ._shutdown import _watchdog
 
 _store = ResultStore()
 
@@ -222,7 +221,7 @@ class EventLoop(object):
                                "using crochet are imported and call setup().")
         self._started = True
 
-    def in_event_loop(self, function):
+    def in_reactor(self, function):
         """
         A decorator that ensures the wrapped function runs in the reactor thread.
 

@@ -13,7 +13,7 @@ from twisted.python.failure import Failure
 
 from .._eventloop import EventLoop, DeferredResult, TimeoutError
 from .test_setup import FakeReactor
-from .. import _main, setup, in_event_loop, retrieve_result, _store, no_setup
+from .. import _main, setup, in_reactor, retrieve_result, _store, no_setup
 
 
 class DeferredResultTests(TestCase):
@@ -159,33 +159,33 @@ class DeferredResultTests(TestCase):
         self.assertIdentical(dr.original_failure(), None)
 
 
-class InEventLoopTests(TestCase):
+class InReactorTests(TestCase):
     """
-    Tests for the in_event_loop decorator.
+    Tests for the in_reactor decorator.
     """
 
     def test_name(self):
         """
-        The function decorated with in_event_loop has the same name as the
+        The function decorated with in_reactor has the same name as the
         original function.
         """
         c = EventLoop(None, lambda f, g: None)
 
-        @c.in_event_loop
+        @c.in_reactor
         def some_name(reactor):
             pass
         self.assertEqual(some_name.__name__, "some_name")
 
     def test_run_in_reactor_thread(self):
         """
-        The function decorated with in_event_loop is run in the reactor
+        The function decorated with in_reactor is run in the reactor
         thread, and takes the reactor as its first argument.
         """
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
         calls = []
 
-        @c.in_event_loop
+        @c.in_reactor
         def func(reactor, a, b, c):
             self.assertIdentical(reactor, myreactor)
             self.assertTrue(reactor.in_call_from_thread)
@@ -196,12 +196,12 @@ class InEventLoopTests(TestCase):
 
     def make_wrapped_function(self):
         """
-        Return a function wrapped with in_event_loop that returns its first argument.
+        Return a function wrapped with in_reactor that returns its first argument.
         """
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
 
-        @c.in_event_loop
+        @c.in_reactor
         def passthrough(reactor, argument):
             return argument
         return passthrough
@@ -245,7 +245,7 @@ class InEventLoopTests(TestCase):
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
 
-        @c.in_event_loop
+        @c.in_reactor
         def raiser(reactor):
             1/0
 
@@ -269,7 +269,7 @@ class PublicAPITests(TestCase):
         self.assertIsInstance(_main, EventLoop)
         self.assertEqual(_main.setup, setup)
         self.assertEqual(_main.no_setup, no_setup)
-        self.assertEqual(_main.in_event_loop, in_event_loop)
+        self.assertEqual(_main.in_reactor, in_reactor)
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)
