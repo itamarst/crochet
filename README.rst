@@ -14,7 +14,9 @@ library in Flask, Django or any other blocking or threaded application.
 Quick Example
 -------------
 
-Here's an example of a program using Crochet::
+Here's an example of a program using Crochet:
+
+.. code-block:: python
 
   import sys
 
@@ -61,7 +63,9 @@ Setup
 
 Crochet does a number of things for you as part of setup. Most significantly,
 it runs Twisted's reactor in a thread it manages. Doing setup is easy, just
-call the ``setup()`` function::
+call the ``setup()`` function:
+
+.. code-block:: python
 
   from crochet import setup
   setup()
@@ -77,7 +81,9 @@ Now that you've got the reactor running, the next stage is defining some
 functions that will run inside the Twisted reactor thread. Twisted's APIs are
 not thread-safe, and so they cannot be called directly from another
 thread. Instead, we write a function that is decorated with
-``crochet.in_reactor``::
+``crochet.in_reactor``:
+
+.. code-block:: python
 
   from crochet import in_reactor
 
@@ -132,7 +138,9 @@ Crochet's default behavior of running the reactor in a thread is a problem. To
 solve this, Crochet provides the ``no_setup()`` function, which causes future
 calls to ``setup()`` to do nothing. Thus, an application that will run the
 Twisted reactor but also wants to use a Crochet-using library must run it
-first::
+first:
+
+.. code-block:: python
 
     from crochet import no_setup
     no_setup()
