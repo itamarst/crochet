@@ -3,3 +3,10 @@
 # Unit test / coverage reports
 .coverage
 _trial_temp
+
+# Editor files
+*~
+
+# Distribution
+dist
+crochet.egg-info

@@ -1,2 +1,4 @@
-include LICENSE.md
-include README.md
+include LICENSE
+include README.rst
+include examples/downloader.py
+
