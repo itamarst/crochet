@@ -7,6 +7,8 @@ application, you can use Twisted or Twisted-based libraries like any other
 library in Flask, Django or any other blocking or threaded application.
 
 .. image:: https://travis-ci.org/itamarst/crochet.png?branch=master
+           :target: http://travis-ci.org/itamarst/crochet
+           :alt: Build Status
 
 
 Quick Example
