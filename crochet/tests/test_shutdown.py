@@ -5,14 +5,13 @@ Tests for _shutdown.
 from __future__ import absolute_import
 
 import sys
-import os
+import subprocess
 import time
 
 from twisted.trial.unittest import TestCase
-from twisted.internet import reactor, protocol
-from twisted.internet.defer import Deferred
 
-from crochet._shutdown import Watchdog, FunctionRegistry, _watchdog, register, _registry
+from crochet._shutdown import (Watchdog, FunctionRegistry, _watchdog, register,
+                               _registry)
 
 
 class ShutdownTests(TestCase):
@@ -50,26 +49,8 @@ register(stop, 1, y=2)
 
 sys.exit()
 """
-        done = Deferred()
-
-        class Accumulate(protocol.ProcessProtocol):
-            buffer = ""
-            def outReceived(self, data):
-                self.buffer += data
-            def errReceived(self, data):
-                print "ERR", data
-            def processExited(self, reason):
-                done.callback(True)
-
-        pp = Accumulate()
-        reactor.spawnProcess(pp, sys.executable,
-                             [sys.executable, "-c", program],
-                             env=os.environ)
-
-        def check(result):
-            self.assertEqual(pp.buffer, "byebye")
-        done.addCallback(check)
-        return done
+        result = subprocess.check_output([sys.executable, "-c", program])
+        self.assertEqual(result, b"byebye")
 
     def test_watchdog(self):
         """

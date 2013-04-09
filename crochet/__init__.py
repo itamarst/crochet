@@ -17,7 +17,7 @@ no_setup = _main.no_setup
 in_reactor = _main.in_reactor
 retrieve_result = _store.retrieve
 
-__version__ = "0.5"
+__version__ = "0.5.0"
 
 __all__ = ["setup", "in_reactor", "DeferredResult", "TimeoutError",
            "retrieve_result", "no_setup"]

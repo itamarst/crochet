@@ -12,11 +12,10 @@ language: python
 python:
     - 2.6
     - 2.7
-# Having some issues I need to investigate:
-#    - pypy
-# In theory Python 3.3 should work, but that requires Twisted to be more
-# easily installable on 3.3...
-#    - 3.3
+    - pypy
+# Python 3.3 works, but automated installation and test running are still
+# different than on Python 2:
+#   - 3.3
 
 install:
     - pip install -q $TWISTED --use-mirrors
