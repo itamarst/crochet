@@ -42,6 +42,19 @@ Notice that you get a completely blocking interface to Twisted, and do not
 need to run the Twisted reactor, the event loop, yourself.
 
 
+News
+----
+
+**Next release**
+
+* Added more examples.
+* `setup.py sdist` should work now.
+
+**0.5**
+
+* Initial release.
+
+
 Features
 --------
 
