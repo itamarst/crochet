@@ -52,7 +52,7 @@ def start_ssh_server(reactor, port, username, password, namespace):
 
     sshRealm = manhole_ssh.TerminalRealm()
     def chainedProtocolFactory():
-        return insults.ServerProtocol(manhole.ColoredManhole, namespace)
+        return insults.ServerProtocol(manhole.Manhole, namespace)
     sshRealm.chainedProtocolFactory = chainedProtocolFactory
 
     sshPortal = Portal(sshRealm, [MemoryDB(**{username: password})])
