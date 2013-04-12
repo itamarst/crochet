@@ -25,8 +25,9 @@ def download_page(reactor, url):
 @app.route('/')
 def index():
     if 'download' not in session:
-        # No download, start it in background:
-        session['download'] = download_page('http://www.google.com').stash()
+        # Calling an @in_reactor function returns a DefererdResult:
+        result = download_page('http://www.google.com')
+        session['download'] = result.stash()
         return "Starting download, refresh to track progress."
 
     # retrieval is a one-time operation, so session value cannot be reused:
