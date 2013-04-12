@@ -2,7 +2,26 @@
 """
 A demonstration of Conch, allowing you to SSH into a running Python server and
 inspect objects at a Python prompt.
+
+If you're using the system install of Twisted, you may need to install Conch
+separately, e.g. on Ubuntu:
+
+   $ sudo apt-get install python-twisted-conch
+
+Once you've started the program, you can ssh in by doing:
+
+    $ ssh admin@localhost -p 5022
+
+The password is 'secret'. Once you've reached the Python prompt, you have
+access to the app object, and can import code, etc.:
+
+    >>> 3 + 4
+    7
+    >>> print(app)
+    <flask.app.Flask object at 0x18e1690>
+
 """
+
 import logging
 
 from flask import Flask

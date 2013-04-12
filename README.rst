@@ -48,7 +48,7 @@ News
 **Next release**
 
 * Added more examples.
-* `setup.py sdist` should work now.
+* ``setup.py sdist`` should work now.
 
 **0.5**
 
