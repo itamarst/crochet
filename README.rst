@@ -12,6 +12,8 @@ applications.
            :alt: Build Status
 
 
+Bugs and feature requests should be filed at the project `Github page`_.
+
 Quick Example
 -------------
 
@@ -41,6 +43,10 @@ Run on the command line::
 Notice that you get a completely blocking interface to Twisted, and do not
 need to run the Twisted reactor, the event loop, yourself.
 
+More examples are available in the ``examples/`` folder, or online on the
+project `Github page`_.
+
+.. _Github page: https://github.com/itamarst/crochet/
 
 News
 ----
