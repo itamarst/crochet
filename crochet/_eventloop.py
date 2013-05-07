@@ -87,7 +87,7 @@ class DeferredResult(object):
         """
         result = self._result(timeout)
         if isinstance(result, Failure):
-            raise result.value
+            result.raiseException()
         return result
 
     def stash(self):
