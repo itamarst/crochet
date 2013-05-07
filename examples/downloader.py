@@ -5,7 +5,7 @@ A flask web application that downloads a page in the background.
 
 import logging
 from flask import Flask, session, escape
-from crochet import setup, in_reactor, retrieve_result, TimeoutError
+from crochet import setup, run_in_reactor, retrieve_result, TimeoutError
 
 # Can be called multiple times with no ill-effect:
 setup()
@@ -13,8 +13,8 @@ setup()
 app = Flask(__name__)
 
 
-@in_reactor
-def download_page(reactor, url):
+@run_in_reactor
+def download_page(url):
     """
     Download a page.
     """

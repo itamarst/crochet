@@ -17,7 +17,7 @@ from twisted.internet.task import LoopingCall
 from twisted.web.client import getPage
 from twisted.python import log
 
-from crochet import in_reactor, setup
+from crochet import run_in_reactor, setup
 setup()
 
 
@@ -39,6 +39,7 @@ class ExchangeRate(object):
         """
         return self._value
 
+    @run_in_reactor
     def start(self):
         """
         Start the background process.
@@ -64,14 +65,13 @@ class ExchangeRate(object):
         return d
 
 
-@in_reactor
 def start_download(reactor, exchangerate):
     exchangerate.start()
 
 
 # Start background download:
 EURUSD = ExchangeRate("EURUSD")
-start_download(EURUSD)
+EURUSD.start()
 
 
 # Flask application:

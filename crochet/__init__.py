@@ -15,6 +15,7 @@ _main = EventLoop(reactor, register, startLoggingWithObserver,
 setup = _main.setup
 no_setup = _main.no_setup
 in_reactor = _main.in_reactor
+run_in_reactor = _main.run_in_reactor
 retrieve_result = _store.retrieve
 
 __version__ = "0.5.0"

@@ -25,7 +25,7 @@ access to the app object, and can import code, etc.:
 import logging
 
 from flask import Flask
-from crochet import setup, in_reactor
+from crochet import setup, run_in_reactor
 setup()
 
 # Web server:
@@ -36,14 +36,15 @@ def index():
     return "Welcome to my boring web server!"
 
 
-@in_reactor
-def start_ssh_server(reactor, port, username, password, namespace):
+@run_in_reactor
+def start_ssh_server(port, username, password, namespace):
     """
     Start an SSH server on the given port, exposing a Python prompt with the
     given namespace.
     """
     # This is a lot of boilerplate, see http://tm.tl/6429 for a ticket to
     # provide a utility function that simplifies this.
+    from twisted.internet import reactor
     from twisted.conch.insults import insults
     from twisted.conch import manhole, manhole_ssh
     from twisted.cred.checkers import (

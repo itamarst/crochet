@@ -13,7 +13,8 @@ from twisted.python.failure import Failure
 
 from .._eventloop import EventLoop, DeferredResult, TimeoutError
 from .test_setup import FakeReactor
-from .. import _main, setup, in_reactor, retrieve_result, _store, no_setup
+from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
+                run_in_reactor)
 
 
 class DeferredResultTests(TestCase):
@@ -161,7 +162,7 @@ class DeferredResultTests(TestCase):
 
 class InReactorTests(TestCase):
     """
-    Tests for the in_reactor decorator.
+    Tests for the run_in_reactor decorator (and the deprecated in_reactor).
     """
 
     def test_name(self):
@@ -176,7 +177,7 @@ class InReactorTests(TestCase):
             pass
         self.assertEqual(some_name.__name__, "some_name")
 
-    def test_run_in_reactor_thread(self):
+    def test_in_reactor_thread(self):
         """
         The function decorated with in_reactor is run in the reactor
         thread, and takes the reactor as its first argument.
@@ -194,6 +195,23 @@ class InReactorTests(TestCase):
         func(1, 2, c=3)
         self.assertEqual(calls, [(1, 2, 3)])
 
+    def test_run_in_reactor_thread(self):
+        """
+        The function decorated with run_in_reactor is run in the reactor
+        thread, and takes the reactor as its first argument.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(myreactor, lambda f, g: None)
+        calls = []
+
+        @c.run_in_reactor
+        def func(a, b, c):
+            self.assertTrue(myreactor.in_call_from_thread)
+            calls.append((a, b, c))
+
+        func(1, 2, c=3)
+        self.assertEqual(calls, [(1, 2, 3)])
+
     def make_wrapped_function(self):
         """
         Return a function wrapped with in_reactor that returns its first argument.
@@ -201,8 +219,8 @@ class InReactorTests(TestCase):
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
 
-        @c.in_reactor
-        def passthrough(reactor, argument):
+        @c.run_in_reactor
+        def passthrough(argument):
             return argument
         return passthrough
 
@@ -245,8 +263,8 @@ class InReactorTests(TestCase):
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
 
-        @c.in_reactor
-        def raiser(reactor):
+        @c.run_in_reactor
+        def raiser():
             1/0
 
         result = raiser()
@@ -270,6 +288,7 @@ class PublicAPITests(TestCase):
         self.assertEqual(_main.setup, setup)
         self.assertEqual(_main.no_setup, no_setup)
         self.assertEqual(_main.in_reactor, in_reactor)
+        self.assertEqual(_main.run_in_reactor, run_in_reactor)
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)

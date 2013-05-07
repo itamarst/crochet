@@ -24,11 +24,11 @@ Here's an example of a program using Crochet:
   import sys
 
   from twisted.web.client import getPage
-  from crochet import setup, in_reactor
+  from crochet import setup, run_in_reactor
   crochet.setup()
 
-  @in_reactor
-  def download_page(reactor, url):
+  @run_in_reactor
+  def download_page(url):
       return getPage(url)
 
   result = download_page(sys.argv[1])
@@ -53,6 +53,8 @@ News
 
 **Next release**
 
+* Deprecated ``@in_reactor``, replaced with ``@run_in_reactor`` which doesn't
+  change the arguments to the wrapped function.
 * Added more examples.
 * ``setup.py sdist`` should work now.
 
@@ -101,22 +103,21 @@ Now that you've got the reactor running, the next stage is defining some
 functions that will run inside the Twisted reactor thread. Twisted's APIs are
 not thread-safe, and so they cannot be called directly from another
 thread. Instead, we write a function that is decorated with
-``crochet.in_reactor``:
+``crochet.run_in_reactor``:
 
 .. code-block:: python
 
-  from crochet import in_reactor
+  from twisted.internet import reactor
+  from crochet import run_in_reactor
 
-  @in_reactor
-  def call_later(reactor, delay, f, *args, **kwargs):
+  @run_in_reactor
+  def call_later(delay, f, *args, **kwargs):
       reactor.callLater(delay, f, *args, **kwargs)
 
   call_later(30, sys.stdout.write, "30 seconds have passed.\n")
 
 Some points to notice:
 
-* The decorated function will get an extra argument at the start, the Twisted
-  ``reactor``.
 * The code will not run in the calling thread, but rather in the reactor
   thread.
 * The return result from a decorated object is a ``DeferredResult``, which
@@ -128,7 +129,7 @@ Asynchronous Results
 Since the code in the decorated function will be run in a separate thread, it
 cannot be returned normally. Moreover, the code may return a ``Deferred``,
 which means the result may not be available until that ``Deferred`` fires. To
-deal with that, functions decorated with ``crochet.in_reactor`` return a
+deal with that, functions decorated with ``crochet.run_in_reactor`` return a
 ``crochet.DeferredResult`` instance.
 
 ``DeferredResult`` has the following methods:

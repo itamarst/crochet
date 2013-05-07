@@ -5,12 +5,12 @@ A command-line application that uses Twisted to do an MX DNS query.
 
 from __future__ import print_function
 
-from crochet import setup, in_reactor
+from crochet import setup, run_in_reactor
 setup()
 
 
-@in_reactor
-def mx(reactor, domain):
+@run_in_reactor
+def mx(domain):
     """
     Return list of MX domains for a given domain.
     """
