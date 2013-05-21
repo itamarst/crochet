@@ -65,10 +65,6 @@ class ExchangeRate(object):
         return d
 
 
-def start_download(reactor, exchangerate):
-    exchangerate.start()
-
-
 # Start background download:
 EURUSD = ExchangeRate("EURUSD")
 EURUSD.start()
