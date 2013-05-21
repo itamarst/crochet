@@ -53,10 +53,12 @@ News
 
 **Next release**
 
-* Unhandled exceptions in ``DeferredResult`` objects are logged.
+* Renamed ``DeferredResult`` to ``EventualResult``, to reduce confusion with
+  Twisted's ``Deferred`` class. The old name still works, but is deprecated.
 * Deprecated ``@in_reactor``, replaced with ``@run_in_reactor`` which doesn't
-  change the arguments to the wrapped function. The old API still works,
+  change the arguments to the wrapped function. The deprecated API still works,
   however.
+* Unhandled exceptions in ``EventualResult`` objects are logged.
 * Added more examples.
 * ``setup.py sdist`` should work now.
 
@@ -122,7 +124,7 @@ Some points to notice:
 
 * The code will not run in the calling thread, but rather in the reactor
   thread.
-* The return result from a decorated object is a ``DeferredResult``, which
+* The return result from a decorated object is a ``EventualResult``, which
   will be discussed in the next section.
 
 Asynchronous Results
@@ -132,9 +134,9 @@ Since the code in the decorated function will be run in a separate thread, it
 cannot be returned normally. Moreover, the code may return a ``Deferred``,
 which means the result may not be available until that ``Deferred`` fires. To
 deal with that, functions decorated with ``crochet.run_in_reactor`` return a
-``crochet.DeferredResult`` instance.
+``crochet.EventualResult`` instance.
 
-``DeferredResult`` has the following methods:
+``EventualResult`` has the following methods:
 
 * ``wait(timeout=None)``: Return the result when it becomes available; if the
   result is an exception it will be raised. If an optional timeout is given
@@ -144,11 +146,11 @@ deal with that, functions decorated with ``crochet.run_in_reactor`` return a
   ``Deferred``. Many, but not all, ``Deferred`` results returned from Twisted
   allow the underlying operation to be canceled. In any case this should be
   considered a best effort cancellation.
-* ``stash()``: Sometimes you want to store the ``DeferredResult`` in memory
-  for later retrieval. ``stash()`` stores the ``DeferredResult`` in memory,
+* ``stash()``: Sometimes you want to store the ``EventualResult`` in memory
+  for later retrieval. ``stash()`` stores the ``EventualResult`` in memory,
   and returns an integer uid that can be used to retrieve the result using
   ``crochet.retrieve_result(uid)``. This is specifically useful when you want
-  to store a reference to the ``DeferredResult`` in a web session like
+  to store a reference to the ``EventualResult`` in a web session like
   Flask's. See the included ``examples/downloader.py`` for an example of using
   this API.
 

@@ -30,9 +30,12 @@ class TimeoutError(Exception):
     """
 
 
-class DeferredResult(object):
+class EventualResult(object):
     """
     A blocking interface to Deferred results.
+
+    This allows you to access results from Twisted operations that may not be
+    available immediately, using the wait() method.
     """
 
     def __init__(self, deferred, _reactor=reactor):
@@ -47,7 +50,7 @@ class DeferredResult(object):
             if queue:
                 queue.put(result)
             else:
-                err(result, "Unhandled error in DeferredResult")
+                err(result, "Unhandled error in EventualResult")
         deferred.addBoth(put)
 
     def __del__(self):
@@ -58,7 +61,7 @@ class DeferredResult(object):
         except Empty:
             return
         if isinstance(result, Failure):
-            err(result, "Unhandled error in DeferredResult")
+            err(result, "Unhandled error in EventualResult")
 
     def cancel(self):
         """
@@ -113,7 +116,7 @@ class DeferredResult(object):
 
     def stash(self):
         """
-        Store the DeferredResult in memory for later retrieval.
+        Store the EventualResult in memory for later retrieval.
 
         Returns a integer uid which can be passed to crochet.retrieve_result()
         to retrieve the instance later on.
@@ -246,11 +249,11 @@ class EventLoop(object):
         """
         A decorator that ensures the wrapped function runs in the reactor thread.
 
-        When the wrapped function is called, a DeferredResult is returned.
+        When the wrapped function is called, an EventualResult is returned.
         """
         def runs_in_reactor(args, kwargs):
             d = maybeDeferred(function, *args, **kwargs)
-            return DeferredResult(d)
+            return EventualResult(d)
 
         @wraps(function)
         def wrapper(*args, **kwargs):
@@ -267,7 +270,7 @@ class EventLoop(object):
         The wrapped function will get the reactor passed in as a first
         argument, in addition to any arguments it is called with.
 
-        When the wrapped function is called, a DeferredResult is returned.
+        When the wrapped function is called, an EventualResult is returned.
         """
         import warnings
         warnings.warn("@in_reactor is deprecated, use @run_in_reactor",

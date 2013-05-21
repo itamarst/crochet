@@ -80,7 +80,7 @@ class SetupTests(TestCase):
     def test_stop_on_exit(self):
         """
         setup() registers an exit handler that stops the reactor, and an exit
-        handler that logs stashed DeferredResults.
+        handler that logs stashed EventualResults.
         """
         atexit = []
         reactor = FakeReactor()

@@ -1,5 +1,5 @@
 """
-In-memory store for DeferredResults.
+In-memory store for EventualResults.
 """
 
 import threading
@@ -11,13 +11,13 @@ from ._util import synchronized
 
 class ResultStore(object):
     """
-    An in-memory store for DeferredResult instances.
+    An in-memory store for EventualResult instances.
 
-    Each DeferredResult put in the store gets a unique identifier, which can
+    Each EventualResult put in the store gets a unique identifier, which can
     be used to retrieve it later. This is useful for referring to results in
     e.g. web sessions.
 
-    DeferredResults that are not retrieved by shutdown will be logged if they
+    EventualResults that are not retrieved by shutdown will be logged if they
     have an error result.
     """
     def __init__(self):
@@ -28,7 +28,7 @@ class ResultStore(object):
     @synchronized
     def store(self, deferred_result):
         """
-        Store a DeferredResult.
+        Store a EventualResult.
 
         Return an integer, a unique identifier that can be used to retrieve
         the object.
@@ -40,17 +40,17 @@ class ResultStore(object):
     @synchronized
     def retrieve(self, result_id):
         """
-        Return the given DeferredResult, and remove it from the store.
+        Return the given EventualResult, and remove it from the store.
         """
         return self._stored.pop(result_id)
 
     @synchronized
     def log_errors(self):
         """
-        Log errors for all stored DeferredResults that have error results.
+        Log errors for all stored EventualResults that have error results.
         """
         for result in self._stored.values():
             failure = result.original_failure()
             if failure is not None:
-                log.err(failure, "Unhandled error in stashed DeferredResult:")
+                log.err(failure, "Unhandled error in stashed EventualResult:")
 

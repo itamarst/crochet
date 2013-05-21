@@ -13,22 +13,22 @@ from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 
-from .._eventloop import EventLoop, DeferredResult, TimeoutError
+from .._eventloop import EventLoop, EventualResult, TimeoutError
 from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
                 run_in_reactor)
 
 
-class DeferredResultTests(TestCase):
+class EventualResultTests(TestCase):
     """
-    Tests for DeferredResult.
+    Tests for EventualResult.
     """
 
     def test_success_result(self):
         """
         wait() returns the value the Deferred fired with.
         """
-        dr = DeferredResult(succeed(123))
+        dr = EventualResult(succeed(123))
         self.assertEqual(dr.wait(), 123)
 
     def test_later_success_result(self):
@@ -41,14 +41,14 @@ class DeferredResultTests(TestCase):
             import time; time.sleep(0.01)
             d.callback(345)
         threading.Thread(target=fireSoon).start()
-        dr = DeferredResult(d)
+        dr = EventualResult(d)
         self.assertEqual(dr.wait(), 345)
 
     def test_success_result_twice(self):
         """
         A second call to wait() returns same value as the first call.
         """
-        dr = DeferredResult(succeed(123))
+        dr = EventualResult(succeed(123))
         self.assertEqual(dr.wait(), 123)
         self.assertEqual(dr.wait(), 123)
 
@@ -56,7 +56,7 @@ class DeferredResultTests(TestCase):
         """
         wait() raises the exception the Deferred fired with.
         """
-        dr = DeferredResult(fail(RuntimeError()))
+        dr = EventualResult(fail(RuntimeError()))
         self.assertRaises(RuntimeError, dr.wait)
 
     def test_later_failure_result(self):
@@ -69,14 +69,14 @@ class DeferredResultTests(TestCase):
             time.sleep(0.01)
             d.errback(RuntimeError())
         threading.Thread(target=fireSoon).start()
-        dr = DeferredResult(d)
+        dr = EventualResult(d)
         self.assertRaises(RuntimeError, dr.wait)
 
     def test_failure_result_twice(self):
         """
         A second call to wait() raises same value as the first call.
         """
-        dr = DeferredResult(fail(ZeroDivisionError()))
+        dr = EventualResult(fail(ZeroDivisionError()))
         self.assertRaises(ZeroDivisionError, dr.wait)
         self.assertRaises(ZeroDivisionError, dr.wait)
 
@@ -85,7 +85,7 @@ class DeferredResultTests(TestCase):
         If no result is available, wait(timeout) will throw a TimeoutError.
         """
         start = time.time()
-        dr = DeferredResult(Deferred())
+        dr = EventualResult(Deferred())
         self.assertRaises(TimeoutError, dr.wait, timeout=0.03)
         self.assertTrue(abs(time.time() - start - 0.03) < 0.005)
 
@@ -94,7 +94,7 @@ class DeferredResultTests(TestCase):
         If no result is available, a second call to wait(timeout) will also
         result in a TimeoutError exception.
         """
-        dr = DeferredResult(Deferred())
+        dr = EventualResult(Deferred())
         self.assertRaises(TimeoutError, dr.wait, timeout=0.01)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.01)
 
@@ -104,7 +104,7 @@ class DeferredResultTests(TestCase):
         wait() will return it.
         """
         d = Deferred()
-        dr = DeferredResult(d)
+        dr = EventualResult(d)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.01)
         d.callback(u"value")
         self.assertEqual(dr.wait(), u"value")
@@ -122,51 +122,51 @@ class DeferredResultTests(TestCase):
             cancelled.append(f)
 
         d = Deferred().addErrback(error)
-        dr = DeferredResult(d, _reactor=reactor)
+        dr = EventualResult(d, _reactor=reactor)
         dr.cancel()
         self.assertTrue(cancelled[0])
         self.assertIsInstance(cancelled[1].value, CancelledError)
 
     def test_stash(self):
         """
-        DeferredResult.stash() stores the object in the global ResultStore.
+        EventualResult.stash() stores the object in the global ResultStore.
         """
-        dr = DeferredResult(Deferred())
+        dr = EventualResult(Deferred())
         uid = dr.stash()
         self.assertIdentical(dr, _store.retrieve(uid))
 
     def test_original_failure(self):
         """
         original_failure() returns the underlying Failure of the Deferred
-        wrapped by the DeferredResult.
+        wrapped by the EventualResult.
         """
         try:
             1/0
         except:
             f = Failure()
-        dr = DeferredResult(fail(f))
+        dr = EventualResult(fail(f))
         self.assertIdentical(dr.original_failure(), f)
 
     def test_original_failure_no_result(self):
         """
         If there is no result yet, original_failure() returns None.
         """
-        dr = DeferredResult(Deferred())
+        dr = EventualResult(Deferred())
         self.assertIdentical(dr.original_failure(), None)
 
     def test_original_failure_not_error(self):
         """
         If the result is not an error, original_failure() returns None.
         """
-        dr = DeferredResult(succeed(3))
+        dr = EventualResult(succeed(3))
         self.assertIdentical(dr.original_failure(), None)
 
     def test_error_logged_no_wait(self):
         """
         If the result is an error and wait() was never called, the error will
-        be logged once the DeferredResult is garbage-collected.
+        be logged once the EventualResult is garbage-collected.
         """
-        dr = DeferredResult(fail(ZeroDivisionError()))
+        dr = EventualResult(fail(ZeroDivisionError()))
         del dr
         gc.collect()
         excs = self.flushLoggedErrors(ZeroDivisionError)
@@ -175,10 +175,10 @@ class DeferredResultTests(TestCase):
     def test_error_logged_wait_timeout(self):
         """
         If the result is an error and wait() was called but timed out, the
-        error will be logged once the DeferredResult is garbage-collected.
+        error will be logged once the EventualResult is garbage-collected.
         """
         d = Deferred()
-        dr = DeferredResult(d)
+        dr = EventualResult(d)
         try:
             dr.wait(0)
         except TimeoutError:
@@ -193,10 +193,10 @@ class DeferredResultTests(TestCase):
     def test_error_after_gc_logged(self):
         """
         If the result is an error that occurs after all user references to the
-        DeferredResult are lost, the error is still logged.
+        EventualResult are lost, the error is still logged.
         """
         d = Deferred()
-        dr = DeferredResult(d)
+        dr = EventualResult(d)
         del dr
         gc.collect()
         d.errback(ZeroDivisionError())
@@ -271,38 +271,38 @@ class InReactorTests(TestCase):
     def test_deferred_success_result(self):
         """
         If the underlying function returns a Deferred, the wrapper returns a
-        DeferredResult hooked up to the Deferred.
+        EventualResult hooked up to the Deferred.
         """
         passthrough = self.make_wrapped_function()
         result = passthrough(succeed(123))
-        self.assertIsInstance(result, DeferredResult)
+        self.assertIsInstance(result, EventualResult)
         self.assertEqual(result.wait(), 123)
 
     def test_deferred_failure_result(self):
         """
         If the underlying function returns a Deferred, the wrapper returns a
-        DeferredResult hooked up to the Deferred that can deal with failures
+        EventualResult hooked up to the Deferred that can deal with failures
         as well.
         """
         passthrough = self.make_wrapped_function()
         result = passthrough(fail(ZeroDivisionError()))
-        self.assertIsInstance(result, DeferredResult)
+        self.assertIsInstance(result, EventualResult)
         self.assertRaises(ZeroDivisionError, result.wait)
 
     def test_regular_result(self):
         """
         If the underlying function returns a non-Deferred, the wrapper returns
-        a DeferredResult hooked up to a Deferred wrapping the result.
+        a EventualResult hooked up to a Deferred wrapping the result.
         """
         passthrough = self.make_wrapped_function()
         result = passthrough(123)
-        self.assertIsInstance(result, DeferredResult)
+        self.assertIsInstance(result, EventualResult)
         self.assertEqual(result.wait(), 123)
 
     def test_exception_result(self):
         """
         If the underlying function throws an exception, the wrapper returns a
-        DeferredResult hooked up to a Deferred wrapping the exception.
+        EventualResult hooked up to a Deferred wrapping the exception.
         """
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
@@ -312,7 +312,7 @@ class InReactorTests(TestCase):
             1/0
 
         result = raiser()
-        self.assertIsInstance(result, DeferredResult)
+        self.assertIsInstance(result, EventualResult)
         self.assertRaises(ZeroDivisionError, result.wait)
 
 
@@ -342,6 +342,6 @@ class PublicAPITests(TestCase):
         """
         retrieve_result() calls retrieve() on the global ResultStore.
         """
-        dr = DeferredResult(Deferred())
+        dr = EventualResult(Deferred())
         uid = dr.stash()
         self.assertIdentical(dr, retrieve_result(uid))
