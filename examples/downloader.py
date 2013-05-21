@@ -25,7 +25,7 @@ def download_page(url):
 @app.route('/')
 def index():
     if 'download' not in session:
-        # Calling an @run_in_reactor function returns a DefererdResult:
+        # Calling an @run_in_reactor function returns an EventualResult:
         result = download_page('http://www.google.com')
         session['download'] = result.stash()
         return "Starting download, refresh to track progress."
