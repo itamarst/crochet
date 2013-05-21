@@ -53,8 +53,10 @@ News
 
 **Next release**
 
+* Unhandled exceptions in ``DeferredResult`` objects are logged.
 * Deprecated ``@in_reactor``, replaced with ``@run_in_reactor`` which doesn't
-  change the arguments to the wrapped function.
+  change the arguments to the wrapped function. The old API still works,
+  however.
 * Added more examples.
 * ``setup.py sdist`` should work now.
 

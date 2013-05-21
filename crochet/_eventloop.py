@@ -5,6 +5,7 @@ Expose Twisted's event loop to threaded programs.
 from __future__ import absolute_import
 
 import threading
+import weakref
 try:
     from queue import Queue, Empty
 except ImportError:
@@ -12,7 +13,7 @@ except ImportError:
 from functools import wraps
 
 from twisted.python.failure import Failure
-from twisted.python.log import PythonLoggingObserver
+from twisted.python.log import PythonLoggingObserver, err
 from twisted.internet.threads import blockingCallFromThread
 from twisted.internet.defer import maybeDeferred
 from twisted.internet import reactor
@@ -38,7 +39,26 @@ class DeferredResult(object):
         self._deferred = deferred
         self._reactor = _reactor
         self._queue = Queue()
-        self._deferred.addBoth(self._queue.put)
+        self._result_retrieved = False
+        # Because we use __del__, we need to make sure there are no cycles
+        # involving this object, which is why we use a weakref:
+        def put(result, queue=weakref.ref(self._queue)):
+            queue = queue()
+            if queue:
+                queue.put(result)
+            else:
+                err(result, "Unhandled error in DeferredResult")
+        deferred.addBoth(put)
+
+    def __del__(self):
+        if self._result_retrieved:
+            return
+        try:
+            result = self._queue.get(timeout=0)
+        except Empty:
+            return
+        if isinstance(result, Failure):
+            err(result, "Unhandled error in DeferredResult")
 
     def cancel(self):
         """
@@ -69,6 +89,7 @@ class DeferredResult(object):
             result = self._queue.get(timeout=timeout)
         except Empty:
             raise TimeoutError()
+        self._result_retrieved = True
         self._queue.put(result) # allow next _result() call to get a value out
         return result
 

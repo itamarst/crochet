@@ -6,6 +6,8 @@ from __future__ import absolute_import
 
 import threading
 import time
+import gc
+import sys
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
@@ -158,6 +160,48 @@ class DeferredResultTests(TestCase):
         """
         dr = DeferredResult(succeed(3))
         self.assertIdentical(dr.original_failure(), None)
+
+    def test_error_logged_no_wait(self):
+        """
+        If the result is an error and wait() was never called, the error will
+        be logged once the DeferredResult is garbage-collected.
+        """
+        dr = DeferredResult(fail(ZeroDivisionError()))
+        del dr
+        gc.collect()
+        excs = self.flushLoggedErrors(ZeroDivisionError)
+        self.assertEqual(len(excs), 1)
+
+    def test_error_logged_wait_timeout(self):
+        """
+        If the result is an error and wait() was called but timed out, the
+        error will be logged once the DeferredResult is garbage-collected.
+        """
+        d = Deferred()
+        dr = DeferredResult(d)
+        try:
+            dr.wait(0)
+        except TimeoutError:
+            pass
+        d.errback(ZeroDivisionError())
+        del dr
+        sys.exc_clear()
+        gc.collect()
+        excs = self.flushLoggedErrors(ZeroDivisionError)
+        self.assertEqual(len(excs), 1)
+
+    def test_error_after_gc_logged(self):
+        """
+        If the result is an error that occurs after all user references to the
+        DeferredResult are lost, the error is still logged.
+        """
+        d = Deferred()
+        dr = DeferredResult(d)
+        del dr
+        gc.collect()
+        d.errback(ZeroDivisionError())
+        excs = self.flushLoggedErrors(ZeroDivisionError)
+        self.assertEqual(len(excs), 1)
 
 
 class InReactorTests(TestCase):
