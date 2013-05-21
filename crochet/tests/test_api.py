@@ -185,7 +185,8 @@ class EventualResultTests(TestCase):
             pass
         d.errback(ZeroDivisionError())
         del dr
-        sys.exc_clear()
+        if sys.version_info[0] == 2:
+            sys.exc_clear()
         gc.collect()
         excs = self.flushLoggedErrors(ZeroDivisionError)
         self.assertEqual(len(excs), 1)
