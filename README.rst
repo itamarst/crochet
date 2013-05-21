@@ -21,24 +21,92 @@ Here's an example of a program using Crochet:
 
 .. code-block:: python
 
-  import sys
+    """
+    An example of scheduling time-based events in the background.
 
-  from twisted.web.client import getPage
-  from crochet import setup, run_in_reactor
-  crochet.setup()
+    Download the latest EUR/USD exchange rate from Yahoo every 30 seconds in the
+    background; the rendered Flask web page can use the latest value without
+    having to do the request itself.
 
-  @run_in_reactor
-  def download_page(url):
-      return getPage(url)
+    Note this is example is for demonstration purposes only, and is not actually
+    used in the real world. You should not do this in a real application without
+    reading Yahoo's terms-of-service and following them.
+    """
 
-  result = download_page(sys.argv[1])
-  # wait() returns the result when it becomes available:
-  print result.wait()
+    from flask import Flask
 
-Run on the command line::
+    from twisted.internet.task import LoopingCall
+    from twisted.web.client import getPage
+    from twisted.python import log
 
-  $ python example.py http://google.com
-  <!doctype html><html itemscope="itemscope" ... etc. ...
+    from crochet import run_in_reactor, setup
+    setup()
+
+
+    class ExchangeRate(object):
+        """
+        Download an exchange rate from Yahoo Finance using Twisted.
+        """
+
+        def __init__(self, name):
+            self._value = None
+            self._name = name
+
+        # External API:
+        def latest_value(self):
+            """
+            Return the latest exchange rate value.
+
+            May be None if no value is available.
+            """
+            return self._value
+
+        @run_in_reactor
+        def start(self):
+            """
+            Start the background process.
+            """
+            self._lc = LoopingCall(self._download)
+            # Run immediately, and then every 30 seconds:
+            self._lc.start(30, now=True)
+
+        def _download(self):
+            """
+            Do an actual download, runs in Twisted thread.
+            """
+            print "Downloading!"
+            def parse(result):
+                print("Got %r back from Yahoo." % (result,))
+                values = result.strip().split(",")
+                self._value = float(values[1])
+            d = getPage(
+                "http://download.finance.yahoo.com/d/quotes.csv?e=.csv&f=c4l1&s=%s=X"
+                % (self._name,))
+            d.addCallback(parse)
+            d.addErrback(log.err)
+            return d
+
+
+    # Start background download:
+    EURUSD = ExchangeRate("EURUSD")
+    EURUSD.start()
+
+
+    # Flask application:
+    app = Flask(__name__)
+
+    @app.route('/')
+    def index():
+        rate = EURUSD.latest_value()
+        if rate is None:
+            rate = "unavailable, please refresh the page"
+        return "Current EUR/USD exchange rate is %s." % (rate,)
+
+
+    if __name__ == '__main__':
+        import sys, logging
+        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+        app.run()
 
 Notice that you get a completely blocking interface to Twisted, and do not
 need to run the Twisted reactor, the event loop, yourself.
