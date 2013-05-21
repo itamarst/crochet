@@ -198,8 +198,8 @@ class EventualResultTests(TestCase):
         d = Deferred()
         dr = EventualResult(d)
         del dr
-        gc.collect()
         d.errback(ZeroDivisionError())
+        gc.collect()
         excs = self.flushLoggedErrors(ZeroDivisionError)
         self.assertEqual(len(excs), 1)
 
