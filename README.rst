@@ -119,7 +119,7 @@ project `Github page`_.
 News
 ----
 
-**Next release**
+**0.6.0**
 
 * Renamed ``DeferredResult`` to ``EventualResult``, to reduce confusion with
   Twisted's ``Deferred`` class. The old name still works, but is deprecated.
@@ -130,7 +130,7 @@ News
 * Added more examples.
 * ``setup.py sdist`` should work now.
 
-**0.5**
+**0.5.0**
 
 * Initial release.
 
