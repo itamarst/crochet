@@ -19,9 +19,6 @@ Quick Example
 
 Here's an example of a program using Crochet:
 
-
-Here's an example of a program using Crochet:
-
 .. code-block:: python
 
   import sys
