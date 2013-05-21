@@ -19,6 +19,41 @@ Quick Example
 
 Here's an example of a program using Crochet:
 
+
+Here's an example of a program using Crochet:
+
+.. code-block:: python
+
+  import sys
+
+  from twisted.web.client import getPage
+  from crochet import setup, run_in_reactor
+  crochet.setup()
+
+  @run_in_reactor
+  def download_page(url):
+      return getPage(url)
+
+  result = download_page(sys.argv[1])
+  # wait() returns the result when it becomes available:
+  print result.wait()
+
+Run on the command line::
+
+  $ python example.py http://google.com
+  <!doctype html><html itemscope="itemscope" ... etc. ...
+
+Notice that you get a completely blocking interface to Twisted, and do not
+need to run the Twisted reactor, the event loop, yourself.
+
+Longer Example
+--------------
+
+Why should you care about using Twisted? Because it gives you the full power
+of an event-driven networking framework from inside your applications. For
+example, you can use it to schedule events that will run in the background
+without slowing down the page rendering of your web applications:
+
 .. code-block:: python
 
     """
@@ -107,9 +142,6 @@ Here's an example of a program using Crochet:
         import sys, logging
         logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
         app.run()
-
-Notice that you get a completely blocking interface to Twisted, and do not
-need to run the Twisted reactor, the event loop, yourself.
 
 More examples are available in the ``examples/`` folder, or online on the
 project `Github page`_.
