@@ -1,12 +1,13 @@
 Crochet: Asynchronous Calls from Threaded Applications
 ======================================================
 
-Crochet is an MIT-licensed library that makes it easier to integrate Twisted
-with threaded applications. Instead of having Twisted running in the main
-thread, or running the reactor in a thread yourself, you can use Twisted or
-Twisted-based libraries like any other library in Flask, Django or blocking
-applications. Crochet also provides an API to help threaded applications more
-easily interact with Twisted APIs, which are not thread-safe by default.
+Crochet is an MIT-licensed library that makes it easier for threaded
+applications like Flask or Django to use the Twisted networking framework, by
+providing:
+
+* An API to help threads interact with Twisted APIs, which are not thread-safe
+  by default.
+* The ability to easily run the Twisted reactor in the background.
 
 .. image:: https://travis-ci.org/itamarst/crochet.png?branch=master
            :target: http://travis-ci.org/itamarst/crochet
@@ -14,6 +15,7 @@ easily interact with Twisted APIs, which are not thread-safe by default.
 
 
 Bugs and feature requests should be filed at the project `Github page`_.
+
 
 Quick Example
 -------------
@@ -43,6 +45,7 @@ Run on the command line::
 
 Notice that you get a completely blocking interface to Twisted, and do not
 need to run the Twisted reactor, the event loop, yourself.
+
 
 Longer Example
 --------------
