@@ -23,7 +23,7 @@ setup(
         ],
     keywords="twisted threading",
     license="MIT",
-    packages=["crochet"],
+    packages=["crochet", "crochet.tests"],
     url="https://github.com/itamarst/crochet",
     maintainer='Itamar Turner-Trauring',
     maintainer_email='itamar@futurefoundries.com',

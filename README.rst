@@ -153,6 +153,10 @@ project `Github page`_.
 News
 ----
 
+**Next release**
+
+* Unittests are now included in the release tarball.
+
 **0.7.0**
 
 * Improved documentation.
