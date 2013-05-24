@@ -28,7 +28,7 @@ Here's an example of a program using Crochet:
 
   from twisted.web.client import getPage
   from crochet import setup, run_in_reactor
-  crochet.setup()
+  setup()
 
   @run_in_reactor
   def download_page(url):
