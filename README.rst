@@ -1,11 +1,12 @@
 Crochet: Asynchronous Calls from Threaded Applications
 ======================================================
 
-Crochet is an MIT-licensed library that makes it easier to use Twisted as a
-library in threaded applications. Instead of having Twisted running in the
-main thread, or running the reactor in a thread yourself, you can use Twisted
-or Twisted-based libraries like any other library in Flask, Django or blocking
-applications.
+Crochet is an MIT-licensed library that makes it easier to integrate Twisted
+with threaded applications. Instead of having Twisted running in the main
+thread, or running the reactor in a thread yourself, you can use Twisted or
+Twisted-based libraries like any other library in Flask, Django or blocking
+applications. Crochet also provides an API to help threaded applications more
+easily interact with Twisted APIs, which are not thread-safe by default.
 
 .. image:: https://travis-ci.org/itamarst/crochet.png?branch=master
            :target: http://travis-ci.org/itamarst/crochet
@@ -145,10 +146,15 @@ project `Github page`_.
 
 .. _Github page: https://github.com/itamarst/crochet/
 
+
 News
 ----
 
-**0.6.0**
+**0.7.0**
+
+* Improved documentation.
+
+**0.6.0 (unreleased)**
 
 * Renamed ``DeferredResult`` to ``EventualResult``, to reduce confusion with
   Twisted's ``Deferred`` class. The old name still works, but is deprecated.
@@ -177,8 +183,8 @@ Features
 Using Crochet in Blocking Code
 ------------------------------
 
-Using Crochet involves three parts: setup, setting up functions that call into
-Twisted's reactor, and using those functions.
+Using Crochet involves three parts: reactor setup, defining functions that
+call into Twisted's reactor, and using those functions.
 
 
 Setup
@@ -196,6 +202,30 @@ call the ``setup()`` function:
 Since Crochet is intended to be used as a library, multiple calls work just
 fine; if more than one library does ``crochet.setup()`` only the first one
 will do anything.
+
+
+Using Crochet from Twisted Applications
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your application is already planning on running the Twisted reactor itself,
+Crochet's default behavior of running the reactor in a thread is a problem. To
+solve this, Crochet provides the ``no_setup()`` function, which causes future
+calls to ``setup()`` to do nothing. Thus, an application that will run the
+Twisted reactor but also wants to use a Crochet-using library must run it
+first:
+
+.. code-block:: python
+
+    from crochet import no_setup
+    no_setup()
+    # Only now do we import libraries that might run crochet.setup():
+    import blockinglib
+
+    # ... setup application ...
+
+    from twisted.internet import reactor
+    reactor.run()
+
 
 Creating Asynchronous Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -217,21 +247,22 @@ thread. Instead, we write a function that is decorated with
 
   call_later(30, sys.stdout.write, "30 seconds have passed.\n")
 
-Some points to notice:
+Decorating the function with ``run_in_reactor`` has two consequences:
 
-* The code will not run in the calling thread, but rather in the reactor
-  thread.
-* The return result from a decorated object is a ``EventualResult``, which
+* When the function is called, the code will not run in the calling thread,
+  but rather in the reactor thread.
+* The return result from a decorated function is an ``EventualResult``, which
   will be discussed in the next section.
+
 
 Asynchronous Results
 ^^^^^^^^^^^^^^^^^^^^
 
-Since the code in the decorated function will be run in a separate thread, it
-cannot be returned normally. Moreover, the code may return a ``Deferred``,
-which means the result may not be available until that ``Deferred`` fires. To
-deal with that, functions decorated with ``crochet.run_in_reactor`` return a
-``crochet.EventualResult`` instance.
+Since the code in the decorated function will be run in a separate thread, its
+return result or raised exception cannot be returned normally. Moreover, the
+code may return a ``Deferred``, which means the result may not be available
+until that ``Deferred`` fires. To deal with that, functions decorated with
+``crochet.run_in_reactor`` return a ``crochet.EventualResult`` instance.
 
 ``EventualResult`` has the following methods:
 
@@ -244,32 +275,63 @@ deal with that, functions decorated with ``crochet.run_in_reactor`` return a
   allow the underlying operation to be canceled. In any case this should be
   considered a best effort cancellation.
 * ``stash()``: Sometimes you want to store the ``EventualResult`` in memory
-  for later retrieval. ``stash()`` stores the ``EventualResult`` in memory,
-  and returns an integer uid that can be used to retrieve the result using
-  ``crochet.retrieve_result(uid)``. This is specifically useful when you want
-  to store a reference to the ``EventualResult`` in a web session like
-  Flask's. See the included ``examples/downloader.py`` for an example of using
-  this API.
+  for later retrieval. This is specifically useful when you want to store a
+  reference to the ``EventualResult`` in a web session like Flask's (see the
+  example below). ``stash()`` stores the ``EventualResult`` in memory, and
+  returns an integer uid that can be used to retrieve the result using
+  ``crochet.retrieve_result(uid)``. Note that retrieval works only once per
+  uid. You will need the stash the ``EventualResult`` again (with a new
+  resulting uid) if you want to retrieve it again later.
 
-
-Using Crochet from Twisted Applications
----------------------------------------
-
-If your application is already planning on running the Twisted reactor itself,
-Crochet's default behavior of running the reactor in a thread is a problem. To
-solve this, Crochet provides the ``no_setup()`` function, which causes future
-calls to ``setup()`` to do nothing. Thus, an application that will run the
-Twisted reactor but also wants to use a Crochet-using library must run it
-first:
+In the following example, you can see all of these APIs in use. For each user
+session, a download is started in the background. Subsequent page refreshes
+will eventually show the downloaded page.
 
 .. code-block:: python
 
-    from crochet import no_setup
-    no_setup()
-    # Only now do we import libraries that might run crochet.setup():
-    import blockinglib
+    """
+    A flask web application that downloads a page in the background.
+    """
 
-    # ... setup application ...
+    import logging
+    from flask import Flask, session, escape
+    from crochet import setup, run_in_reactor, retrieve_result, TimeoutError
 
-    from twisted.internet import reactor
-    reactor.run()
+    # Can be called multiple times with no ill-effect:
+    setup()
+
+    app = Flask(__name__)
+
+
+    @run_in_reactor
+    def download_page(url):
+        """
+        Download a page.
+        """
+        from twisted.web.client import getPage
+        return getPage(url)
+
+
+    @app.route('/')
+    def index():
+        if 'download' not in session:
+            # Calling an @run_in_reactor function returns an EventualResult:
+            result = download_page('http://www.google.com')
+            session['download'] = result.stash()
+            return "Starting download, refresh to track progress."
+
+        # retrieval is a one-time operation, so the uid in the session cannot be reused:
+        result = retrieve_result(session.pop('download'))
+        try:
+            download = result.wait(timeout=0.1)
+            return "Downloaded: " + escape(download)
+        except TimeoutError:
+            session['download'] = result.stash()
+            return "Download in progress..."
+
+
+    if __name__ == '__main__':
+        import os, sys
+        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+        app.secret_key = os.urandom(24)
+        app.run()

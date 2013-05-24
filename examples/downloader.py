@@ -30,7 +30,8 @@ def index():
         session['download'] = result.stash()
         return "Starting download, refresh to track progress."
 
-    # retrieval is a one-time operation, so session value cannot be reused:
+    # Retrieval is a one-time operation, so the uid in the session cannot be
+    # reused:
     result = retrieve_result(session.pop('download'))
     try:
         download = result.wait(timeout=0.1)
