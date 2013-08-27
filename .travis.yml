@@ -17,8 +17,8 @@ python:
 #   - 3.3
 
 install:
-    - sudo rmdir /dev/shm
-    - sudo ln -Tsf /{run,dev}/shm
+    #Temporal solution to travis issue #155
+    - sudo rmdir /dev/shm && sudo ln -Tsf /{run,dev}/shm
     - pip install -q $TWISTED --use-mirrors
     - python setup.py -q install
 
