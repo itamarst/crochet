@@ -11,7 +11,7 @@ import gc
 import os
 import sys
 
-from twisted.trial.unittest import TestCase, SynchronousTestCase
+from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 
@@ -34,7 +34,7 @@ def hang_process(event):
         t.join()
         return
 
-class SynchronousEventualResultTests(SynchronousTestCase):
+class SynchronousEventualResultTests(TestCase):
     def test_control_c_is_possible(self):
         """
         Given the user presses control c, verify that
