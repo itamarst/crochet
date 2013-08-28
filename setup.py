@@ -16,7 +16,7 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
     name='crochet',
-    version='0.7.0',
+    version='0.8.1',
     description="Use Twisted from threaded applications",
     install_requires=[
         "Twisted>=11.1",
