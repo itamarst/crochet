@@ -153,7 +153,7 @@ project `Github page`_.
 News
 ----
 
-**Next release**
+**0.8.0**
 
 * EventualResult.wait() now raises error if called in the reactor thread.
 * Unittests are now included in the release tarball.
