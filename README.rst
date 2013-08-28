@@ -156,6 +156,7 @@ News
 **Next release**
 
 * Unittests are now included in the release tarball.
+* Allow Ctrl-C to interrupt `EventualResult.wait(timeout=None)`.
 
 **0.7.0**
 
