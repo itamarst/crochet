@@ -88,27 +88,13 @@ class EventualResult(object):
         returned on one call, additional calls will return/raise the same
         result.
         """
-        # The following hack is to prevent a deadlock when pressing C-c
-        # by doing the get in a while loop we ensure we release the GIL
-        # so that the SIGINT signal may be handled correctly.
-        timedout = lambda: False
-        if timeout is not None:
-            timeout_time = self._reactor.seconds() + timeout
-            timedout = lambda: self._reactor.seconds() > timeout_time
-        result = None
+        if timeout is None:
+            # Queue.get(None) won't get interrupted by Ctrl-C...
+            timeout = 2 ** 64
         try:
-            result = self._queue.get(timeout=0)
+            result = self._queue.get(timeout=timeout)
         except Empty:
-            if timeout == 0:
-                raise TimeoutError()
-        while not result and not timedout():
-            try:
-                result = self._queue.get(timeout=0.01)
-                break
-            except Empty:
-                pass
-            if timedout():
-                raise TimeoutError()
+            raise TimeoutError()
         self._result_retrieved = True
         self._queue.put(result) # allow next _result() call to get a value out
         return result
