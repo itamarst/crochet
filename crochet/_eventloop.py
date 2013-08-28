@@ -89,6 +89,9 @@ class EventualResult(object):
         returned on one call, additional calls will return/raise the same
         result.
         """
+        if timeout is None:
+            # Queue.get(None) won't get interrupted by Ctrl-C...
+            timeout = 2 ** 64
         try:
             result = self._queue.get(timeout=timeout)
         except Empty:
