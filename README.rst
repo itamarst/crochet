@@ -155,6 +155,7 @@ News
 
 **Next release**
 
+* EventualResult.wait() now raises error if called in the reactor thread.
 * Unittests are now included in the release tarball.
 
 **0.7.0**

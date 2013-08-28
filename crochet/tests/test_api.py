@@ -12,6 +12,7 @@ import sys
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
+from twisted.python import threadable
 
 from .._eventloop import EventLoop, EventualResult, TimeoutError
 from .test_setup import FakeReactor
@@ -23,6 +24,9 @@ class EventualResultTests(TestCase):
     """
     Tests for EventualResult.
     """
+
+    def setUp(self):
+        self.patch(threadable, "isInIOThread", lambda: False)
 
     def test_success_result(self):
         """
@@ -109,6 +113,15 @@ class EventualResultTests(TestCase):
         d.callback(u"value")
         self.assertEqual(dr.wait(), u"value")
         self.assertEqual(dr.wait(), u"value")
+
+    def test_reactor_thread_disallowed(self):
+        """
+        wait() cannot be called from the reactor thread.
+        """
+        self.patch(threadable, "isInIOThread", lambda: True)
+        d = Deferred()
+        dr = EventualResult(d)
+        self.assertRaises(RuntimeError, dr.wait, 0)
 
     def test_cancel(self):
         """

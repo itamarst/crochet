@@ -12,6 +12,7 @@ except ImportError:
     from Queue import Queue, Empty
 from functools import wraps
 
+from twisted.python import threadable
 from twisted.python.failure import Failure
 from twisted.python.log import PythonLoggingObserver, err
 from twisted.internet.threads import blockingCallFromThread
@@ -109,6 +110,10 @@ class EventualResult(object):
         returned or raised on one call, additional calls will return/raise the
         same result.
         """
+        if threadable.isInIOThread():
+            raise RuntimeError(
+                "EventualResult.wait() must not be run in the reactor thread.")
+
         result = self._result(timeout)
         if isinstance(result, Failure):
             result.raiseException()
