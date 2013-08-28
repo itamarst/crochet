@@ -5,10 +5,9 @@ Tests for the crochet APIs.
 from __future__ import absolute_import
 
 import threading
-import signal
+import subprocess
 import time
 import gc
-import os
 import sys
 
 from twisted.trial.unittest import TestCase
@@ -20,35 +19,6 @@ from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
                 run_in_reactor)
 
-
-def hang_process(event):
-    d = Deferred()
-    #Wait for process to be running
-    e = EventualResult(d)
-    t = threading.Thread(target=event.set)
-    t.start()
-    try:
-        e.wait()
-    except KeyboardInterrupt:
-        #Expected failure
-        t.join()
-        return
-
-class SynchronousEventualResultTests(TestCase):
-    def test_control_c_is_possible(self):
-        """
-        Given the user presses control c, verify that
-        the process stops correctly
-        """
-        import multiprocessing
-        event = multiprocessing.Event()
-        event.clear()
-        proc = multiprocessing.Process(target=hang_process,
-                                       args=(event,))
-        proc.start()
-        event.wait()
-        os.kill(proc.pid, signal.SIGINT)
-        proc.join()
 
 class EventualResultTests(TestCase):
     """
@@ -234,6 +204,32 @@ class EventualResultTests(TestCase):
         gc.collect()
         excs = self.flushLoggedErrors(ZeroDivisionError)
         self.assertEqual(len(excs), 1)
+
+    def test_control_c_is_possible(self):
+        """
+        If you're wait()ing on an EventualResult in main thread, make sure the
+        KeyboardInterrupt happens in timely manner.
+        """
+        program = """\
+import os, threading, signal, time, sys
+import crochet
+crochet.setup()
+from twisted.internet.defer import Deferred
+
+def interrupt():
+    time.sleep(0.5) # Make sure we've hit wait()
+    os.kill(os.getpid(), signal.SIGINT)
+threading.Thread(target=interrupt).start()
+
+d = Deferred()
+e = EventualResult(d)
+try:
+    e.wait(5)
+except KeyboardInterrupt:
+    sys.exit(23)
+"""
+        process = subprocess.Popen([sys.executable, "-c", program])
+        self.assertEqual(process.wait(), 23)
 
 
 class InReactorTests(TestCase):
