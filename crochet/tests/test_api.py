@@ -217,14 +217,21 @@ crochet.setup()
 from twisted.internet.defer import Deferred
 
 def interrupt():
-    time.sleep(0.5) # Make sure we've hit wait()
+    time.sleep(0.1) # Make sure we've hit wait()
     os.kill(os.getpid(), signal.SIGINT)
-threading.Thread(target=interrupt).start()
+    time.sleep(1)
+    # Still running, test shall fail...
+    os.kill(os.getpid(), signal.SIGKILL)
+t = threading.Thread(target=interrupt)
+t.setDaemon(True)
+t.start()
 
 d = Deferred()
-e = EventualResult(d)
+e = crochet.EventualResult(d)
 try:
-    e.wait(5)
+    # Queue.get() has special non-interruptible behavior if not given timeout,
+    # so don't give timeout here.
+    e.wait()
 except KeyboardInterrupt:
     sys.exit(23)
 """
