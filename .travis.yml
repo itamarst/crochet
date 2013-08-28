@@ -5,6 +5,7 @@ env:
     - TWISTED=Twisted==12.2
     - TWISTED=Twisted==12.3
     - TWISTED=Twisted==13.0
+    - TWISTED=Twisted==13.1
 
 language: python
 
@@ -17,8 +18,6 @@ python:
 #   - 3.3
 
 install:
-    #Temporal solution to travis issue #155
-    - sudo rmdir /dev/shm && sudo ln -Tsf /{run,dev}/shm
     - pip install -q $TWISTED --use-mirrors
     - python setup.py -q install
 
