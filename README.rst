@@ -157,6 +157,7 @@ News
 
 * EventualResult.wait() now raises error if called in the reactor thread.
 * Unittests are now included in the release tarball.
+* Allow Ctrl-C to interrupt `EventualResult.wait(timeout=None)`.
 
 **0.7.0**
 

@@ -5,6 +5,7 @@ Tests for the crochet APIs.
 from __future__ import absolute_import
 
 import threading
+import subprocess
 import time
 import gc
 import sys
@@ -216,6 +217,39 @@ class EventualResultTests(TestCase):
         gc.collect()
         excs = self.flushLoggedErrors(ZeroDivisionError)
         self.assertEqual(len(excs), 1)
+
+    def test_control_c_is_possible(self):
+        """
+        If you're wait()ing on an EventualResult in main thread, make sure the
+        KeyboardInterrupt happens in timely manner.
+        """
+        program = """\
+import os, threading, signal, time, sys
+import crochet
+crochet.setup()
+from twisted.internet.defer import Deferred
+
+def interrupt():
+    time.sleep(0.1) # Make sure we've hit wait()
+    os.kill(os.getpid(), signal.SIGINT)
+    time.sleep(1)
+    # Still running, test shall fail...
+    os.kill(os.getpid(), signal.SIGKILL)
+t = threading.Thread(target=interrupt)
+t.setDaemon(True)
+t.start()
+
+d = Deferred()
+e = crochet.EventualResult(d)
+try:
+    # Queue.get() has special non-interruptible behavior if not given timeout,
+    # so don't give timeout here.
+    e.wait()
+except KeyboardInterrupt:
+    sys.exit(23)
+"""
+        process = subprocess.Popen([sys.executable, "-c", program])
+        self.assertEqual(process.wait(), 23)
 
 
 class InReactorTests(TestCase):
