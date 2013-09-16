@@ -14,6 +14,8 @@ from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 from twisted.python import threadable
+from twisted.python.runtime import platform
+from twisted.internet.process import reapAllProcesses
 
 from .._eventloop import EventLoop, EventualResult, TimeoutError
 from .test_setup import FakeReactor
@@ -393,3 +395,13 @@ class PublicAPITests(TestCase):
         dr = EventualResult(Deferred())
         uid = dr.stash()
         self.assertIdentical(dr, retrieve_result(uid))
+
+    def test_reapAllProcesses(self):
+        """
+        An EventLoop object configured with the real reapAllProcesses on POSIX
+        plaforms.
+        """
+        self.assertIdentical(_main._reapAllProcesses, reapAllProcesses)
+    if platform.type != "posix":
+        test_reapAllProcesses.skip = "Only relevant on POSIX platforms"
+

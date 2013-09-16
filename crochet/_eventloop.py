@@ -13,11 +13,13 @@ except ImportError:
 from functools import wraps
 
 from twisted.python import threadable
+from twisted.python.runtime import platform
 from twisted.python.failure import Failure
 from twisted.python.log import PythonLoggingObserver, err
 from twisted.internet.threads import blockingCallFromThread
 from twisted.internet.defer import maybeDeferred
 from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 
 from ._util import synchronized
 from ._resultstore import ResultStore
@@ -197,13 +199,23 @@ class EventLoop(object):
     """
     def __init__(self, reactor, atexit_register,
                  startLoggingWithObserver=None,
-                 watchdog_thread=None):
+                 watchdog_thread=None,
+                 reapAllProcesses=None):
         self._reactor = reactor
         self._atexit_register = atexit_register
         self._startLoggingWithObserver = startLoggingWithObserver
         self._started = False
         self._lock = threading.Lock()
         self._watchdog_thread = watchdog_thread
+        self._reapAllProcesses = reapAllProcesses
+
+    def _startReapingProcesses(self):
+        """
+        Start a LoopingCall that calls reapAllProcesses.
+        """
+        lc = LoopingCall(self._reapAllProcesses)
+        lc.clock = self._reactor
+        lc.start(0.1, False)
 
     @synchronized
     def setup(self):
@@ -219,9 +231,8 @@ class EventLoop(object):
         if self._started:
             return
         self._started = True
-        t = threading.Thread(
-            target=lambda: self._reactor.run(installSignalHandlers=False))
-        t.start()
+        if platform.type == "posix":
+            self._reactor.callFromThread(self._startReapingProcesses)
         if self._startLoggingWithObserver:
             observer = ThreadLogObserver(PythonLoggingObserver().emit)
             self._reactor.callFromThread(
@@ -229,6 +240,9 @@ class EventLoop(object):
             # We only want to stop the logging thread once the reactor has
             # shut down:
             self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
+        t = threading.Thread(
+            target=lambda: self._reactor.run(installSignalHandlers=False))
+        t.start()
         self._atexit_register(self._reactor.callFromThread,
                               self._reactor.stop)
         self._atexit_register(_store.log_errors)

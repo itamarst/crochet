@@ -153,6 +153,14 @@ project `Github page`_.
 News
 ----
 
+**Next release**
+
+* On POSIX platforms, a workaround is installed to ensure processes started by
+  `reactor.spawnProcess` have their exit noticed. See `Twisted ticket 6378`_
+  for more details about the underlying issue.
+
+.. _Twisted ticket 6378: http://tm.tl/6738
+
 **0.8.1**
 
 * EventualResult.wait() now raises error if called in the reactor thread.

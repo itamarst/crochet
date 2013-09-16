@@ -6,12 +6,13 @@ from __future__ import absolute_import
 
 from twisted.internet import reactor
 from twisted.python.log import startLoggingWithObserver
+from twisted.internet.process import reapAllProcesses
 
 from ._shutdown import _watchdog, register
 from ._eventloop import EventualResult, TimeoutError, EventLoop, _store
 
 _main = EventLoop(reactor, register, startLoggingWithObserver,
-                  _watchdog)
+                  _watchdog, reapAllProcesses)
 setup = _main.setup
 no_setup = _main.no_setup
 run_in_reactor = _main.run_in_reactor

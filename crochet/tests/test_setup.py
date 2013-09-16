@@ -8,11 +8,13 @@ import threading
 
 from twisted.trial.unittest import TestCase
 from twisted.python.log import PythonLoggingObserver
+from twisted.python.runtime import platform
+from twisted.internet.task import Clock
 
 from .._eventloop import EventLoop, ThreadLogObserver, _store
 
 
-class FakeReactor(object):
+class FakeReactor(Clock):
     """
     A fake reactor for testing purposes.
     """
@@ -21,6 +23,7 @@ class FakeReactor(object):
     in_call_from_thread = False
 
     def __init__(self):
+        Clock.__init__(self)
         self.started = threading.Event()
         self.stopping = False
         self.events = []
@@ -179,6 +182,42 @@ class SetupTests(TestCase):
         s = EventLoop(reactor, lambda f, *g: None)
         s.setup()
         self.assertRaises(RuntimeError, s.no_setup)
+
+
+class ProcessSetupTests(TestCase):
+    """
+    setup() enables support for IReactorProcess on POSIX plaforms.
+    """
+    def test_posix(self):
+        """
+        On POSIX systems, setup() installs a LoopingCall that runs
+        t.i.process.reapAllProcesses() 10 times a second.
+        """
+        reactor = FakeReactor()
+        reaps = []
+        s = EventLoop(reactor, lambda f, *g: None,
+                      reapAllProcesses=lambda: reaps.append(1))
+        s.setup()
+        reactor.advance(0.1)
+        self.assertEquals(reaps, [1])
+        reactor.advance(0.1)
+        self.assertEquals(reaps, [1, 1])
+        reactor.advance(0.1)
+        self.assertEquals(reaps, [1, 1, 1])
+    if platform.type != "posix":
+        test_posix.skip = "SIGCHLD is a POSIX-specific issue"
+
+    def test_non_posix(self):
+        """
+        On POSIX systems, setup() does not install a LoopingCall.
+        """
+        reactor = FakeReactor()
+        s = EventLoop(reactor, lambda f, *g: None)
+        s.setup()
+        self.assertFalse(reactor.getDelayedCalls())
+
+    if platform.type == "posix":
+        test_non_posix.skip = "SIGCHLD is a POSIX-specific issue"
 
 
 class ThreadLogObserverTest(TestCase):
