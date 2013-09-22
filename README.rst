@@ -14,10 +14,11 @@ providing:
            :alt: Build Status
 
 
-Documentation can be found at XXX add readthedocs link XXX
+Documentation can be found on `Read the Docs`_.
 
 Bugs and feature requests should be filed at the project `Github page`_.
 
+.. _Read the Docs: https://crochet.readthedocs.org/
 .. _Github page: https://github.com/itamarst/crochet/
 
 
