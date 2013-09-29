@@ -16,6 +16,8 @@ def mx(domain):
     """
     from twisted.names.client import lookupMailExchange
     def got_records(result):
+        # XXX This is insufficient, need to do additional DNS queries if
+        # additional is empty.
         hosts, authorities, additional = result
         return [str(record.name) for record in additional]
     d = lookupMailExchange(domain)

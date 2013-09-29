@@ -12,25 +12,11 @@ framework.
 
 Here's an example of a program using Crochet:
 
-.. code-block:: python
-
-  import sys
-
-  from twisted.web.client import getPage
-  from crochet import setup, run_in_reactor
-  setup()
-
-  @run_in_reactor
-  def download_page(url):
-      return getPage(url)
-
-  result = download_page(sys.argv[1])
-  # wait() returns the result when it becomes available:
-  print result.wait()
+.. literalinclude:: ../examples/blockingdownload.py
 
 Run on the command line::
 
-  $ python example.py http://google.com
+  $ python blockingdownload.py http://google.com
   <!doctype html><html itemscope="itemscope" ... etc. ...
 
 Notice that you get a completely blocking interface to Twisted, and do not
@@ -45,4 +31,3 @@ Table of Contents
 
    introduction
    api
-
