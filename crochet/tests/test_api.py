@@ -256,7 +256,7 @@ except KeyboardInterrupt:
 
 class InReactorTests(TestCase):
     """
-    Tests for the run_in_reactor decorator (and the deprecated in_reactor).
+    Tests for the deprecated in_reactor decorator.
     """
 
     def test_name(self):
@@ -289,6 +289,51 @@ class InReactorTests(TestCase):
         func(1, 2, c=3)
         self.assertEqual(calls, [(1, 2, 3)])
 
+    def test_run_in_reactor_wrapper(self):
+        """
+        in_reactor is implemented on top of run_in_reactor.
+        """
+        wrapped = [False]
+
+        def fake_run_in_reactor(function):
+            def wrapper(*args, **kwargs):
+                wrapped[0] = True
+                result = function(*args, **kwargs)
+                wrapped[0] = False
+                return result
+            return wrapper
+
+        myreactor = FakeReactor()
+        c = EventLoop(myreactor, lambda f, g: None)
+        c.run_in_reactor = fake_run_in_reactor
+
+
+        @c.in_reactor
+        def func(reactor):
+            self.assertTrue(wrapped[0])
+            return 17
+
+        result = func()
+        self.assertFalse(wrapped[0])
+        self.assertEqual(result, 17)
+
+
+class RunInReactorTests(TestCase):
+    """
+    Tests for the run_in_reactor decorator.
+    """
+    def test_name(self):
+        """
+        The function decorated with run_in_reactor has the same name as the
+        original function.
+        """
+        c = EventLoop(None, lambda f, g: None)
+
+        @c.run_in_reactor
+        def some_name(reactor):
+            pass
+        self.assertEqual(some_name.__name__, "some_name")
+
     def test_run_in_reactor_thread(self):
         """
         The function decorated with run_in_reactor is run in the reactor
@@ -308,7 +353,8 @@ class InReactorTests(TestCase):
 
     def make_wrapped_function(self):
         """
-        Return a function wrapped with in_reactor that returns its first argument.
+        Return a function wrapped with run_in_reactor that returns its first
+        argument.
         """
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
