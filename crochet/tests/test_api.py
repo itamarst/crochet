@@ -20,7 +20,7 @@ from twisted.internet.process import reapAllProcesses
 from .._eventloop import EventLoop, EventualResult, TimeoutError
 from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
-                run_in_reactor)
+                run_in_reactor, wait_for_reactor)
 
 
 class EventualResultTests(TestCase):
@@ -330,14 +330,14 @@ class RunInReactorTests(TestCase):
         c = EventLoop(None, lambda f, g: None)
 
         @c.run_in_reactor
-        def some_name(reactor):
+        def some_name():
             pass
         self.assertEqual(some_name.__name__, "some_name")
 
     def test_run_in_reactor_thread(self):
         """
         The function decorated with run_in_reactor is run in the reactor
-        thread, and takes the reactor as its first argument.
+        thread.
         """
         myreactor = FakeReactor()
         c = EventLoop(myreactor, lambda f, g: None)
@@ -412,6 +412,106 @@ class RunInReactorTests(TestCase):
         self.assertRaises(ZeroDivisionError, result.wait)
 
 
+class WaitForReactorTests(TestCase):
+    """
+    Tests for the wait_for_reactor decorator.
+    """
+    def test_name(self):
+        """
+        The function decorated with run_in_reactor has the same name as the
+        original function.
+        """
+        c = EventLoop(None, lambda f, g: None)
+
+        @c.wait_for_reactor
+        def some_name():
+            pass
+        self.assertEqual(some_name.__name__, "some_name")
+
+    def test_reactor_thread_disallowed(self):
+        """
+        Functions decorated with wait_for_reactor() cannot be called from the
+        reactor thread.
+        """
+        self.patch(threadable, "isInIOThread", lambda: True)
+        c = EventLoop(None, lambda f, g: None)
+        @c.wait_for_reactor
+        def f():
+            pass
+        self.assertRaises(RuntimeError, f)
+
+    def test_wait_for_reactor_thread(self):
+        """
+        The function decorated with wait_for_reactor is run in the reactor
+        thread.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(myreactor, lambda f, g: None)
+        calls = []
+
+        @c.wait_for_reactor
+        def func(a, b, c):
+            self.assertTrue(myreactor.in_call_from_thread)
+            calls.append((a, b, c))
+
+        func(1, 2, c=3)
+        self.assertEqual(calls, [(1, 2, 3)])
+
+    def make_wrapped_function(self):
+        """
+        Return a function wrapped with wait_for_reactor that returns its first
+        argument.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(myreactor, lambda f, g: None)
+
+        @c.wait_for_reactor
+        def passthrough(argument):
+            return argument
+        return passthrough
+
+    def test_deferred_success_result(self):
+        """
+        If the underlying function returns a Deferred, the wrapper returns a
+        the Deferred's result.
+        """
+        passthrough = self.make_wrapped_function()
+        result = passthrough(succeed(123))
+        self.assertEqual(result, 123)
+
+    def test_deferred_failure_result(self):
+        """
+        If the underlying function returns a Deferred with an errback, the
+        wrapper throws an exception.
+        """
+        passthrough = self.make_wrapped_function()
+        self.assertRaises(
+            ZeroDivisionError, passthrough, fail(ZeroDivisionError()))
+
+    def test_regular_result(self):
+        """
+        If the underlying function returns a non-Deferred, the wrapper returns
+        that result.
+        """
+        passthrough = self.make_wrapped_function()
+        result = passthrough(123)
+        self.assertEqual(result, 123)
+
+    def test_exception_result(self):
+        """
+        If the underlying function throws an exception, the wrapper raises
+        that exception.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(myreactor, lambda f, g: None)
+
+        @c.wait_for_reactor
+        def raiser():
+            1/0
+
+        self.assertRaises(ZeroDivisionError, raiser)
+
+
 class PublicAPITests(TestCase):
     """
     Tests for the public API.
@@ -429,6 +529,7 @@ class PublicAPITests(TestCase):
         self.assertEqual(_main.no_setup, no_setup)
         self.assertEqual(_main.in_reactor, in_reactor)
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
+        self.assertEqual(_main.wait_for_reactor, wait_for_reactor)
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)

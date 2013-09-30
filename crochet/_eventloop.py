@@ -283,6 +283,23 @@ class EventLoop(object):
                                           kwargs)
         return wrapper
 
+    def wait_for_reactor(self, function):
+        """
+        A decorator that ensures the wrapped function runs in the reactor thread.
+
+        When the wrapped function is called, its result is returned or its
+        exception raised. Deferreds are handled transparently.
+        """
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            if threadable.isInIOThread():
+                raise RuntimeError(
+                    "Functions decorated with @wait_for_reactor must not be run"
+                    " in the reactor thread.")
+            return blockingCallFromThread(self._reactor,
+                                          function, *args, **kwargs)
+        return wrapper
+
     def in_reactor(self, function):
         """
         DEPRECATED, use run_in_reactor.
