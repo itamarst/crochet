@@ -1,5 +1,5 @@
-Using Crochet in Blocking Code
-------------------------------
+The API
+-------
 
 Using Crochet involves three parts: reactor setup, defining functions that
 call into Twisted's reactor, and using those functions.
@@ -20,29 +20,6 @@ call the ``setup()`` function:
 Since Crochet is intended to be used as a library, multiple calls work just
 fine; if more than one library does ``crochet.setup()`` only the first one
 will do anything.
-
-
-Using Crochet from Twisted Applications
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If your application is already planning on running the Twisted reactor itself,
-Crochet's default behavior of running the reactor in a thread is a problem. To
-solve this, Crochet provides the ``no_setup()`` function, which causes future
-calls to ``setup()`` to do nothing. Thus, an application that will run the
-Twisted reactor but also wants to use a Crochet-using library must run it
-first:
-
-.. code-block:: python
-
-    from crochet import no_setup
-    no_setup()
-    # Only now do we import libraries that might run crochet.setup():
-    import blockinglib
-
-    # ... setup application ...
-
-    from twisted.internet import reactor
-    reactor.run()
 
 
 Creating Asynchronous Functions
@@ -106,3 +83,26 @@ session, a download is started in the background. Subsequent page refreshes
 will eventually show the downloaded page.
 
 .. literalinclude:: ../examples/downloader.py 
+
+
+Using Crochet from Twisted Applications
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your application is already planning on running the Twisted reactor itself,
+Crochet's default behavior of running the reactor in a thread is a problem. To
+solve this, Crochet provides the ``no_setup()`` function, which causes future
+calls to ``setup()`` to do nothing. Thus, an application that will run the
+Twisted reactor but also wants to use a Crochet-using library must run it
+first:
+
+.. code-block:: python
+
+    from crochet import no_setup
+    no_setup()
+    # Only now do we import libraries that might run crochet.setup():
+    import blockinglib
+
+    # ... setup application ...
+
+    from twisted.internet import reactor
+    reactor.run()
