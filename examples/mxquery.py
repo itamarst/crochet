@@ -5,30 +5,40 @@ A command-line application that uses Twisted to do an MX DNS query.
 
 from __future__ import print_function
 
-from crochet import setup, run_in_reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.names.client import lookupMailExchange
+from crochet import setup, wait_for_reactor
 setup()
 
 
-@run_in_reactor
-def mx(domain):
+# Twisted code:
+def _mx(domain):
     """
-    Return list of MX domains for a given domain.
+    Return Defered that fires with a list of (priority, MX domain) tuples for
+    a given domain.
     """
-    from twisted.names.client import lookupMailExchange
     def got_records(result):
-        # XXX This is insufficient, need to do additional DNS queries if
-        # additional is empty.
-        hosts, authorities, additional = result
-        return [str(record.name) for record in additional]
+        return sorted(
+            [(int(record.payload.preference), str(record.payload.name))
+             for record in result[0]])
     d = lookupMailExchange(domain)
     d.addCallback(got_records)
     return d
 
+# Blocking wrapper:
+@wait_for_reactor
+def mx(domain):
+    """
+    Return list of (priority, MX domain) tuples for a given domain.
+    """
+    return _mx(domain)
 
+
+# Application code:
 def main(domain):
     print("Mail servers for %s:" % (domain,))
-    for mailserver in mx(domain).wait():
-        print(mailserver)
+    for priority, mailserver in mx(domain):
+        print(priority, mailserver)
 
 
 if __name__ == '__main__':

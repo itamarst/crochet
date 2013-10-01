@@ -11,20 +11,21 @@ used in the real world. You should not do this in a real application without
 reading Yahoo's terms-of-service and following them.
 """
 
+from __future__ import print_function
+
 from flask import Flask
 
 from twisted.internet.task import LoopingCall
 from twisted.web.client import getPage
 from twisted.python import log
 
-from crochet import run_in_reactor, setup
+from crochet import wait_for_reactor, setup
 setup()
 
 
-class ExchangeRate(object):
-    """
-    Download an exchange rate from Yahoo Finance using Twisted.
-    """
+# Twisted code:
+class _ExchangeRate(object):
+    """Download an exchange rate from Yahoo Finance using Twisted."""
 
     def __init__(self, name):
         self._value = None
@@ -32,27 +33,21 @@ class ExchangeRate(object):
 
     # External API:
     def latest_value(self):
-        """
-        Return the latest exchange rate value.
+        """Return the latest exchange rate value.
 
         May be None if no value is available.
         """
         return self._value
 
-    @run_in_reactor
     def start(self):
-        """
-        Start the background process.
-        """
+        """Start the background process."""
         self._lc = LoopingCall(self._download)
         # Run immediately, and then every 30 seconds:
         self._lc.start(30, now=True)
 
     def _download(self):
-        """
-        Do an actual download, runs in Twisted thread.
-        """
-        print "Downloading!"
+        """Download the page."""
+        print("Downloading!")
         def parse(result):
             print("Got %r back from Yahoo." % (result,))
             values = result.strip().split(",")
@@ -65,9 +60,26 @@ class ExchangeRate(object):
         return d
 
 
+# Blocking wrapper:
+class ExchangeRate(object):
+    """Blocking API for downloading exchange rate."""
+
+    @wait_for_reactor
+    def __init__(self, name):
+        self._exchange = _ExchangeRate(name)
+        self._exchange.start()
+
+    @wait_for_reactor
+    def latest_value(self):
+        """Return the latest exchange rate value.
+
+        May be None if no value is available.
+        """
+        return self._exchange.latest_value()
+
+
 # Start background download:
 EURUSD = ExchangeRate("EURUSD")
-EURUSD.start()
 
 
 # Flask application:

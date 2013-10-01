@@ -15,16 +15,24 @@ Why should you care about using Twisted? Because it gives you the full power
 of an event-driven networking framework from inside your applications.
 
 
-Example: DNS Query
-^^^^^^^^^^^^^^^^^^
-For example, Twisted has a fully featured DNS library:
-
-.. literalinclude:: ../examples/mxquery.py
-
-
 Example: Background Scheduling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You can also use Crochet to schedule events that will run in the background
+You can use Crochet to schedule events that will run in the background
 without slowing down the page rendering of your web applications:
 
 .. literalinclude:: ../examples/scheduling.py
+
+
+Example: SSH into your Server:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+You can SSH into your Python process and get a Python prompt, allowing you to
+poke around in the internals of your running program:
+
+.. literalinclude:: ../examples/ssh.py
+
+
+Example: DNS Query
+^^^^^^^^^^^^^^^^^^
+Twisted also has a fully featured DNS library:
+
+.. literalinclude:: ../examples/mxquery.py
