@@ -151,3 +151,15 @@ to use a Crochet-using library must run it first:
 
     from twisted.internet import reactor
     reactor.run()
+
+
+Reducing Twisted Log Messages
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Twisted can be rather verbose with its log messages. If you wish to reduce the
+message flow you can limit them to error messages only:
+
+.. code-block:: python
+
+   import logging
+   logging.getLogger('twisted').setLevel(logging.ERROR)
