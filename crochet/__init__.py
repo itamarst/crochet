@@ -24,7 +24,7 @@ in_reactor = _main.in_reactor
 DeferredResult = EventualResult
 
 
-__version__ = "0.8.1"
+__version__ = "0.9.0"
 
 __all__ = ["setup", "run_in_reactor", "EventualResult", "TimeoutError",
            "retrieve_result", "no_setup", "wait_for_reactor",

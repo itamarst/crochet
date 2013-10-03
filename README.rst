@@ -14,7 +14,7 @@ providing:
            :alt: Build Status
 
 
-Documentation can be found on `Read the Docs`_.
+Documentation can be found on `Read The Docs`_.
 
 Bugs and feature requests should be filed at the project `Github page`_.
 
@@ -25,8 +25,12 @@ Bugs and feature requests should be filed at the project `Github page`_.
 Changelog
 ---------
 
-**Next release**
+**0.9.0**
 
+* Expanded and much improved documentation, including a new section with
+  design suggestions.
+* New decorator ``@wait_for_reactor`` added, a simpler alternative to
+  ``@run_in_reactor``.
 * On POSIX platforms, a workaround is installed to ensure processes started by
   `reactor.spawnProcess` have their exit noticed. See `Twisted ticket 6378`_
   for more details about the underlying issue.
@@ -43,7 +47,7 @@ Changelog
 
 * Improved documentation.
 
-**0.6.0 (unreleased)**
+**0.6.0**
 
 * Renamed ``DeferredResult`` to ``EventualResult``, to reduce confusion with
   Twisted's ``Deferred`` class. The old name still works, but is deprecated.
