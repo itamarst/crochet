@@ -31,6 +31,8 @@ Changelog
   design suggestions.
 * New decorator ``@wait_for_reactor`` added, a simpler alternative to
   ``@run_in_reactor``.
+* ``@run_in_reactor`` decorated functions (or rather, their generated wrapper)
+  are interrupted by Ctrl-C.
 * On POSIX platforms, a workaround is installed to ensure processes started by
   `reactor.spawnProcess` have their exit noticed. See `Twisted ticket 6378`_
   for more details about the underlying issue.
@@ -39,7 +41,7 @@ Changelog
 
 **0.8.1**
 
-* EventualResult.wait() now raises error if called in the reactor thread.
+* ``EventualResult.wait()`` now raises error if called in the reactor thread.
 * Unittests are now included in the release tarball.
 * Allow Ctrl-C to interrupt `EventualResult.wait(timeout=None)`.
 
