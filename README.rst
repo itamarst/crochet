@@ -27,10 +27,17 @@ Changelog
 
 **0.9.0**
 
+New features:
+
 * Expanded and much improved documentation, including a new section with
   design suggestions.
 * New decorator ``@wait_for_reactor`` added, a simpler alternative to
   ``@run_in_reactor``.
+* ``@run_in_reactor`` decorated functions now raise an exception if called in
+  the reactor thread.
+
+Bug fixes:
+
 * ``@run_in_reactor`` decorated functions (or rather, their generated wrapper)
   are interrupted by Ctrl-C.
 * On POSIX platforms, a workaround is installed to ensure processes started by

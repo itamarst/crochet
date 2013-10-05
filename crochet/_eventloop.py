@@ -57,6 +57,11 @@ def _blockingCallFromThread(reactor, f, *a, **kw):
         C{blockingCallFromThread} will raise that failure's exception (see
         L{Failure.raiseException}).
     """
+    if threadable.isInIOThread():
+        raise RuntimeError(
+            "Functions decorated with @run_in_reactor/@wait_for_reactor must "
+            "not be run in the reactor thread.")
+
     queue = Queue()
     def _callFromThread():
         result = maybeDeferred(f, *a, **kw)
@@ -329,10 +334,6 @@ class EventLoop(object):
         """
         @wraps(function)
         def wrapper(*args, **kwargs):
-            if threadable.isInIOThread():
-                raise RuntimeError(
-                    "Functions decorated with @wait_for_reactor must not be run"
-                    " in the reactor thread.")
             return _blockingCallFromThread(self._reactor,
                                            function, *args, **kwargs)
         return wrapper

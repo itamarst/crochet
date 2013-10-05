@@ -458,6 +458,18 @@ except KeyboardInterrupt:
         process = subprocess.Popen([sys.executable, "-c", program])
         self.assertEqual(process.wait(), 23)
 
+    def test_reactor_thread_disallowed(self):
+        """
+        Functions decorated with run_in_reactor() cannot be called from the
+        reactor thread.
+        """
+        self.patch(threadable, "isInIOThread", lambda: True)
+        c = EventLoop(FakeReactor(), lambda f, g: None)
+        @c.run_in_reactor
+        def f():
+            pass
+        self.assertRaises(RuntimeError, f)
+
 
 class WaitForReactorTests(TestCase):
     """
