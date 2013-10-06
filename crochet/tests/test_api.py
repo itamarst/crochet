@@ -10,7 +10,7 @@ import time
 import gc
 import sys
 
-from twisted.trial.unittest import TestCase
+from twisted.trial.unittest import TestCase, SkipTest
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 from twisted.python import threadable
@@ -255,7 +255,24 @@ except KeyboardInterrupt:
 
     def test_reactor_stop_unblocks_EventualResult(self):
         """
+        Any EventualResult.wait() calls still waiting when the reactor has
+        stopped will get a ReactorStopped exception.
         """
+        raise SkipTest("Not done yet.")
+
+    def test_connect_deferred(self):
+        """
+        If an EventualResult is created with None,
+        EventualResult._connect_deferred can be called later to register a
+        Deferred as the one it is wrapping.
+        """
+        er = EventualResult(None)
+        self.assertRaises(TimeoutError, er.wait, 0)
+        d = Deferred()
+        er._connect_deferred(d)
+        self.assertRaises(TimeoutError, er.wait, 0)
+        d.callback(123)
+        self.assertEqual(er.wait(), 123)
 
 
 class InReactorTests(TestCase):
@@ -415,61 +432,6 @@ class RunInReactorTests(TestCase):
         self.assertIsInstance(result, EventualResult)
         self.assertRaises(ZeroDivisionError, result.wait)
 
-    def test_control_c_is_possible(self):
-        """
-        A call to a decorated function responds to a Ctrl-C (i.e. with a
-        KeyboardInterrupt) in a timely manner.
-
-        Specifically, this checks that code running in run_in_reactor wrapper
-        is interruptible.
-        """
-        program = """\
-import os, threading, signal, time, sys
-import crochet
-crochet.setup()
-from twisted.internet.defer import Deferred
-
-def interrupt():
-    time.sleep(0.1) # Make sure we've hit block()
-    os.kill(os.getpid(), signal.SIGINT)
-    time.sleep(10)
-    # Still running, test shall fail...
-    os.kill(os.getpid(), signal.SIGKILL)
-t = threading.Thread(target=interrupt)
-t.setDaemon(True)
-t.start()
-
-@crochet.run_in_reactor
-def block():
-    # Blocking function, to make sure the initial blockingCallFromThread in
-    # run_in_reactor is the one that is being interrupted:
-    time.sleep(1)
-    return Deferred()
-
-try:
-    start = time.time()
-    block()
-except KeyboardInterrupt:
-    if time.time() - start > 0.5:
-        # We were blocked and not interrupted by Ctrl-C
-        sys.exit(3)
-    sys.exit(23)
-"""
-        process = subprocess.Popen([sys.executable, "-c", program])
-        self.assertEqual(process.wait(), 23)
-
-    def test_reactor_thread_disallowed(self):
-        """
-        Functions decorated with run_in_reactor() cannot be called from the
-        reactor thread.
-        """
-        self.patch(threadable, "isInIOThread", lambda: True)
-        c = EventLoop(FakeReactor(), lambda f, g: None)
-        @c.run_in_reactor
-        def f():
-            pass
-        self.assertRaises(RuntimeError, f)
-
 
 class WaitForReactorTests(TestCase):
     """
@@ -493,7 +455,7 @@ class WaitForReactorTests(TestCase):
         reactor thread.
         """
         self.patch(threadable, "isInIOThread", lambda: True)
-        c = EventLoop(None, lambda f, g: None)
+        c = EventLoop(FakeReactor(), lambda f, g: None)
         @c.wait_for_reactor
         def f():
             pass

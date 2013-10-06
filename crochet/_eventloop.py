@@ -16,7 +16,6 @@ from twisted.python import threadable
 from twisted.python.runtime import platform
 from twisted.python.failure import Failure
 from twisted.python.log import PythonLoggingObserver, err
-from twisted.internet.threads import blockingCallFromThread
 from twisted.internet.defer import maybeDeferred
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -33,48 +32,6 @@ class TimeoutError(Exception):
     """
 
 
-def _blockingCallFromThread(reactor, f, *a, **kw):
-    """
-    An improved version of the one in Twisted.
-
-    Run a function in the reactor from a thread, and wait for the result
-    synchronously.  If the function returns a L{Deferred}, wait for its
-    result and return that.
-
-    @param reactor: The L{IReactorThreads} provider which will be used to
-        schedule the function call.
-    @param f: the callable to run in the reactor thread
-    @type f: any callable.
-    @param a: the arguments to pass to C{f}.
-    @param kw: the keyword arguments to pass to C{f}.
-
-    @return: the result of the L{Deferred} returned by C{f}, or the result
-        of C{f} if it returns anything other than a L{Deferred}.
-
-    @raise: If C{f} raises a synchronous exception,
-        C{blockingCallFromThread} will raise that exception.  If C{f}
-        returns a L{Deferred} which fires with a L{Failure},
-        C{blockingCallFromThread} will raise that failure's exception (see
-        L{Failure.raiseException}).
-    """
-    if threadable.isInIOThread():
-        raise RuntimeError(
-            "Functions decorated with @run_in_reactor/@wait_for_reactor must "
-            "not be run in the reactor thread.")
-
-    queue = Queue()
-    def _callFromThread():
-        result = maybeDeferred(f, *a, **kw)
-        result.addBoth(queue.put)
-    reactor.callFromThread(_callFromThread)
-    # This is a hack. Using a timeout means Queue.get polls, and is therefore
-    # interruptible by signals like SIGINT.
-    result = queue.get(timeout=99999999999999999)
-    if isinstance(result, Failure):
-        result.raiseException()
-    return result
-
-
 class EventualResult(object):
     """
     A blocking interface to Deferred results.
@@ -84,10 +41,23 @@ class EventualResult(object):
     """
 
     def __init__(self, deferred, _reactor=reactor):
+        """
+        The deferred parameter should be a Deferred or None indicating
+        _connect_deferred will be called separately later.
+        """
         self._deferred = deferred
         self._reactor = _reactor
         self._queue = Queue()
         self._result_retrieved = False
+        if deferred is not None:
+            self._connect_deferred(deferred)
+
+    def _connect_deferred(self, deferred):
+        """
+        Hook up the Deferred that that this will be the result of.
+
+        Should only be run in Twisted thread, and only called once.
+        """
         # Because we use __del__, we need to make sure there are no cycles
         # involving this object, which is why we use a weakref:
         def put(result, queue=weakref.ref(self._queue)):
@@ -315,14 +285,15 @@ class EventLoop(object):
 
         When the wrapped function is called, an EventualResult is returned.
         """
-        def runs_in_reactor(args, kwargs):
+        def runs_in_reactor(result, args, kwargs):
             d = maybeDeferred(function, *args, **kwargs)
-            return EventualResult(d)
+            result._connect_deferred(d)
 
         @wraps(function)
         def wrapper(*args, **kwargs):
-            return _blockingCallFromThread(self._reactor, runs_in_reactor, args,
-                                           kwargs)
+            result = EventualResult(None, self._reactor)
+            self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
+            return result
         return wrapper
 
     def wait_for_reactor(self, function):
@@ -334,8 +305,10 @@ class EventLoop(object):
         """
         @wraps(function)
         def wrapper(*args, **kwargs):
-            return _blockingCallFromThread(self._reactor,
-                                           function, *args, **kwargs)
+            @self.run_in_reactor
+            def run():
+                return function(*args, **kwargs)
+            return run().wait()
         return wrapper
 
     def in_reactor(self, function):

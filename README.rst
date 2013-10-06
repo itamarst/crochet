@@ -33,8 +33,7 @@ New features:
   design suggestions.
 * New decorator ``@wait_for_reactor`` added, a simpler alternative to
   ``@run_in_reactor``.
-* ``@run_in_reactor`` decorated functions now raise an exception if called in
-  the reactor thread.
+* Refactored ``@run_in_reactor``, making it a bit more responsive.
 
 Bug fixes:
 
