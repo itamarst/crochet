@@ -26,8 +26,8 @@ without slowing down the page rendering of your web applications:
 .. literalinclude:: ../examples/scheduling.py
 
 
-Example: SSH into your Server:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Example: SSH into your Server
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You can SSH into your Python process and get a Python prompt, allowing you to
 poke around in the internals of your running program:
 
