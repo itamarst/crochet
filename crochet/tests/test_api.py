@@ -85,7 +85,7 @@ class ResultRegistryTests(TestCase):
         ref = weakref.ref(er)
         del er
         gc.collect()
-        self.assertIs(ref(), None)
+        self.assertIdentical(ref(), None)
 
     def test_runs_with_lock(self):
         """
