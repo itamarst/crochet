@@ -9,7 +9,8 @@ from twisted.python.log import startLoggingWithObserver
 from twisted.internet.process import reapAllProcesses
 
 from ._shutdown import _watchdog, register
-from ._eventloop import EventualResult, TimeoutError, EventLoop, _store
+from ._eventloop import (EventualResult, TimeoutError, EventLoop, _store,
+                         ReactorStopped)
 
 _main = EventLoop(reactor, register, startLoggingWithObserver,
                   _watchdog, reapAllProcesses)
@@ -28,6 +29,7 @@ __version__ = "0.9.0"
 
 __all__ = ["setup", "run_in_reactor", "EventualResult", "TimeoutError",
            "retrieve_result", "no_setup", "wait_for_reactor",
+           "ReactorStopped",
            # Backwards compatibility:
            "DeferredResult", "in_reactor",
            ]

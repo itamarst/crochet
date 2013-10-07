@@ -34,6 +34,9 @@ New features:
 * New decorator ``@wait_for_reactor`` added, a simpler alternative to
   ``@run_in_reactor``.
 * Refactored ``@run_in_reactor``, making it a bit more responsive.
+* Blocking operations which would otherwise never finish due to reactor having
+  stopped (``EventualResult.wait()`` or ``@wait_for_reactor`` decorated call)
+  will be interrupted with a ``ReactorStopped`` exception.
 
 Bug fixes:
 

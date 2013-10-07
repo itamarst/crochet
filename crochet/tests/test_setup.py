@@ -141,8 +141,7 @@ class SetupTests(TestCase):
                       lambda observer, setStdout=1: observers.append(observer))
         s.setup()
         self.addCleanup(observers[0].stop)
-        self.assertEqual(reactor.events,
-                         [("after", "shutdown", observers[0].stop)])
+        self.assertIn(("after", "shutdown", observers[0].stop), reactor.events)
 
     def test_start_watchdog_thread(self):
         """

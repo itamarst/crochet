@@ -35,7 +35,7 @@ class ResultRegistryTests(TestCase):
         ResultRegistery.stop() fires registered EventualResult with
         ReactorStopped.
         """
-        registry = ResultRegistry()
+        registry = ResultRegistry(FakeReactor())
         er = EventualResult(None)
         registry.register(er)
         registry.stop()
@@ -46,7 +46,7 @@ class ResultRegistryTests(TestCase):
         After ResultRegistery.stop() is called subsequent register() calls
         raise ReactorStopped.
         """
-        registry = ResultRegistry()
+        registry = ResultRegistry(FakeReactor())
         er = EventualResult(None)
         registry.stop()
         self.assertRaises(ReactorStopped, registry.register, er)
@@ -56,7 +56,7 @@ class ResultRegistryTests(TestCase):
         ResultRegistery.stop() has no impact on registered EventualResult
         which already have a result.
         """
-        registry = ResultRegistry()
+        registry = ResultRegistry(FakeReactor())
         er = EventualResult(succeed(123))
         registry.register(er)
         registry.stop()
@@ -69,7 +69,7 @@ class ResultRegistryTests(TestCase):
         Registering an EventualResult with a ResultRegistry does not prevent
         it from being garbage collected.
         """
-        registry = ResultRegistry()
+        registry = ResultRegistry(FakeReactor())
         er = EventualResult(None)
         registry.register(er)
         ref = weakref.ref(er)
@@ -84,6 +84,16 @@ class ResultRegistryTests(TestCase):
         """
         self.assertTrue(ResultRegistry.stop.synchronized)
         self.assertTrue(ResultRegistry.register.synchronized)
+
+    def test_shutdown(self):
+        """
+        The ResultRegistry registers an after shutdown call to self.stop() in
+        the given reactor.
+        """
+        reactor = FakeReactor()
+        registry = ResultRegistry(reactor)
+        self.assertEqual(reactor.events,
+                         [("after", "shutdown", registry.stop)])
 
 
 class EventualResultTests(TestCase):
@@ -342,7 +352,28 @@ except KeyboardInterrupt:
         Any EventualResult.wait() calls still waiting when the reactor has
         stopped will get a ReactorStopped exception.
         """
-        raise SkipTest("Not done yet.")
+        program = """\
+import os, threading, signal, time, sys
+
+from twisted.internet.defer import Deferred
+from twisted.internet import reactor
+
+import crochet
+crochet.setup()
+
+@crochet.run_in_reactor
+def run():
+    reactor.callLater(0.1, reactor.stop)
+    return Deferred()
+
+er = run()
+try:
+    er.wait(timeout=10)
+except crochet.ReactorStopped:
+    sys.exit(23)
+"""
+        process = subprocess.Popen([sys.executable, "-c", program])
+        self.assertEqual(process.wait(), 23)
 
     def test_immediate_cancel(self):
         """
@@ -375,12 +406,6 @@ else:
         process = subprocess.Popen([sys.executable, "-c", program])
         self.assertEqual(process.wait(), 23)
 
-    # More tests:
-    # New @run_in_reactor calls result in EventualResult with ReactorStopped
-    # New @wait_for_reactor calls raise ReactorStopped
-    # Reactor stop unblocks @wait_for_reactor
-    # After reactor stops ResultRegistry is stopped
-
 
 class InReactorTests(TestCase):
     """
@@ -392,7 +417,7 @@ class InReactorTests(TestCase):
         The function decorated with in_reactor has the same name as the
         original function.
         """
-        c = EventLoop(None, lambda f, g: None)
+        c = EventLoop(FakeReactor(), lambda f, g: None)
 
         @c.in_reactor
         def some_name(reactor):
@@ -455,7 +480,7 @@ class RunInReactorTests(TestCase):
         The function decorated with run_in_reactor has the same name as the
         original function.
         """
-        c = EventLoop(None, lambda f, g: None)
+        c = EventLoop(FakeReactor(), lambda f, g: None)
 
         @c.run_in_reactor
         def some_name():
@@ -539,6 +564,20 @@ class RunInReactorTests(TestCase):
         self.assertIsInstance(result, EventualResult)
         self.assertRaises(ZeroDivisionError, result.wait)
 
+    def test_registry(self):
+        """
+        @run_in_reactor registers the EventualResult in the ResultRegistry.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(myreactor, lambda f, g: None)
+
+        @c.run_in_reactor
+        def run():
+            return
+
+        result = run()
+        self.assertIn(result, c._registry._results)
+
 
 class WaitForReactorTests(TestCase):
     """
@@ -549,7 +588,7 @@ class WaitForReactorTests(TestCase):
         The function decorated with run_in_reactor has the same name as the
         original function.
         """
-        c = EventLoop(None, lambda f, g: None)
+        c = EventLoop(FakeReactor(), lambda f, g: None)
 
         @c.wait_for_reactor
         def some_name():
@@ -672,6 +711,32 @@ except KeyboardInterrupt:
         process = subprocess.Popen([sys.executable, "-c", program])
         self.assertEqual(process.wait(), 23)
 
+    def test_reactor_stop_unblocks(self):
+        """
+        Any @wait_for_reactor-decorated calls still waiting when the reactor
+        has stopped will get a ReactorStopped exception.
+        """
+        program = """\
+import os, threading, signal, time, sys
+
+from twisted.internet.defer import Deferred
+from twisted.internet import reactor
+
+import crochet
+crochet.setup()
+
+@crochet.wait_for_reactor
+def run():
+    reactor.callLater(0.1, reactor.stop)
+    return Deferred()
+
+try:
+    er = run()
+except crochet.ReactorStopped:
+    sys.exit(23)
+"""
+        process = subprocess.Popen([sys.executable, "-c", program])
+        self.assertEqual(process.wait(), 23)
 
 class PublicAPITests(TestCase):
     """

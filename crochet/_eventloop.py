@@ -68,10 +68,13 @@ class ResultRegistry(object):
        ReactorStopped exception to unblock any remaining EventualResult.wait()
        calls.
     """
-    def __init__(self):
+    def __init__(self, reactor):
         self._results = WeakSet()
         self._stopped = False
         self._lock = threading.Lock()
+        # We want to unblock EventualResult regardless of how the reactor is
+        # run, so we always register this:
+        reactor.addSystemEventTrigger("after", "shutdown", self.stop)
 
     @synchronized
     def register(self, result):
@@ -303,6 +306,7 @@ class EventLoop(object):
         self._lock = threading.Lock()
         self._watchdog_thread = watchdog_thread
         self._reapAllProcesses = reapAllProcesses
+        self._registry = ResultRegistry(self._reactor)
 
     def _startReapingProcesses(self):
         """
@@ -375,6 +379,7 @@ class EventLoop(object):
         @wraps(function)
         def wrapper(*args, **kwargs):
             result = EventualResult(None, self._reactor)
+            self._registry.register(result)
             self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
             return result
         return wrapper
