@@ -32,12 +32,36 @@ class TimeoutError(Exception):
     """
 
 
+class ReactorStopped(Exception):
+    """
+    The reactor has stopped, and therefore no result will ever become
+    available from this EventualResult.
+    """
+
+
+class ResultRegistry(object):
+    """
+    Keep track of EventualResults.
+
+    Once the reactor has shutdown:
+
+    1. Registering new EventualResult instances is an error, since no results
+       will ever become available.
+    2. Already registered EventualResult instances are "fired" with a
+       ReactorStopped exception to unblock any remaining EventualResult.wait()
+       calls.
+    """
+
+
 class EventualResult(object):
     """
     A blocking interface to Deferred results.
 
     This allows you to access results from Twisted operations that may not be
     available immediately, using the wait() method.
+
+    In general you should not create these directly; instead use functions
+    decorated with @run_in_reactor.
     """
 
     def __init__(self, deferred, _reactor=reactor):
@@ -58,6 +82,7 @@ class EventualResult(object):
 
         Should only be run in Twisted thread, and only called once.
         """
+        self._deferred = deferred
         # Because we use __del__, we need to make sure there are no cycles
         # involving this object, which is why we use a weakref:
         def put(result, queue=weakref.ref(self._queue)):
@@ -80,7 +105,7 @@ class EventualResult(object):
 
     def cancel(self):
         """
-        Try to cancel the operation by cancelling the underlying Defered.
+        Try to cancel the operation by cancelling the underlying Deferred.
 
         Cancellation of the operation may or may not happen depending on
         underlying cancellation support and whether the operation has already
@@ -88,7 +113,7 @@ class EventualResult(object):
 
         Multiple calls will have no additional effect.
         """
-        self._reactor.callFromThread(self._deferred.cancel)
+        self._reactor.callFromThread(lambda: self._deferred.cancel())
 
     def _result(self, timeout=None):
         """

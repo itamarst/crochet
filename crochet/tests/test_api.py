@@ -17,11 +17,29 @@ from twisted.python import threadable
 from twisted.python.runtime import platform
 from twisted.internet.process import reapAllProcesses
 
-from .._eventloop import EventLoop, EventualResult, TimeoutError
+from .._eventloop import EventLoop, EventualResult, TimeoutError, ResultRegistry
 from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
                 run_in_reactor, wait_for_reactor)
 
+
+
+class ResultRegistryTests(TestCase):
+    """
+    Tests for ResultRegistry.
+    """
+    def test_stopped_registered(self):
+        """
+        ResultRegistery.stop() fires registered EventualResult with
+        ReactorStopped.
+        """
+
+    def test_stopped_new_registration(self):
+        """
+        After ResultRegistery.stop() is called subsequent register() calls
+        raise ReactorStopped.
+        """
+    # Weakrefness?
 
 class EventualResultTests(TestCase):
     """
@@ -273,6 +291,50 @@ except KeyboardInterrupt:
         self.assertRaises(TimeoutError, er.wait, 0)
         d.callback(123)
         self.assertEqual(er.wait(), 123)
+
+    def test_reactor_stop_unblocks_EventualResult(self):
+        """
+        Any EventualResult.wait() calls still waiting when the reactor has
+        stopped will get a ReactorStopped exception.
+        """
+        raise SkipTest("Not done yet.")
+
+    def test_immediate_cancel(self):
+        """
+        Immediately cancelling the result of @run_in_reactor function will
+        still cancel the Deferred.
+        """
+        # This depends on the way reactor runs callFromThread calls, so need
+        # real functional test.
+        program = """\
+import os, threading, signal, time, sys
+
+from twisted.internet.defer import Deferred, CancelledError
+
+import crochet
+crochet.setup()
+
+@crochet.run_in_reactor
+def run():
+    return Deferred()
+
+er = run()
+er.cancel()
+try:
+    er.wait(1)
+except CancelledError:
+    sys.exit(23)
+else:
+    sys.exit(3)
+"""
+        process = subprocess.Popen([sys.executable, "-c", program])
+        self.assertEqual(process.wait(), 23)
+
+    # More tests:
+    # New @run_in_reactor calls result in EventualResult with ReactorStopped
+    # New @wait_for_reactor calls raise ReactorStopped
+    # Reactor stop unblocks @wait_for_reactor
+    # After reactor stops ResultRegistry is stopped
 
 
 class InReactorTests(TestCase):
