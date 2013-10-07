@@ -34,7 +34,7 @@ else:
         Minimal WeakSet emulation.
         """
         def __init__(self):
-            self._items = weakref.WeakrefKeyDictionary()
+            self._items = weakref.WeakKeyDictionary()
 
         def add(self, value):
             self._items[value] = True
