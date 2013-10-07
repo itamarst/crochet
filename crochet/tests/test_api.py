@@ -9,6 +9,7 @@ import subprocess
 import time
 import gc
 import sys
+import weakref
 
 from twisted.trial.unittest import TestCase, SkipTest
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
@@ -17,7 +18,8 @@ from twisted.python import threadable
 from twisted.python.runtime import platform
 from twisted.internet.process import reapAllProcesses
 
-from .._eventloop import EventLoop, EventualResult, TimeoutError, ResultRegistry
+from .._eventloop import (EventLoop, EventualResult, TimeoutError,
+                          ResultRegistry, ReactorStopped)
 from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
                 run_in_reactor, wait_for_reactor)
@@ -33,13 +35,56 @@ class ResultRegistryTests(TestCase):
         ResultRegistery.stop() fires registered EventualResult with
         ReactorStopped.
         """
+        registry = ResultRegistry()
+        er = EventualResult(None)
+        registry.register(er)
+        registry.stop()
+        self.assertRaises(ReactorStopped, er.wait, timeout=0)
 
     def test_stopped_new_registration(self):
         """
         After ResultRegistery.stop() is called subsequent register() calls
         raise ReactorStopped.
         """
-    # Weakrefness?
+        registry = ResultRegistry()
+        er = EventualResult(None)
+        registry.stop()
+        self.assertRaises(ReactorStopped, registry.register, er)
+
+    def test_stopped_already_have_result(self):
+        """
+        ResultRegistery.stop() has no impact on registered EventualResult
+        which already have a result.
+        """
+        registry = ResultRegistry()
+        er = EventualResult(succeed(123))
+        registry.register(er)
+        registry.stop()
+        self.assertEqual(er.wait(), 123)
+        self.assertEqual(er.wait(), 123)
+        self.assertEqual(er.wait(), 123)
+
+    def test_weakref(self):
+        """
+        Registering an EventualResult with a ResultRegistry does not prevent
+        it from being garbage collected.
+        """
+        registry = ResultRegistry()
+        er = EventualResult(None)
+        registry.register(er)
+        ref = weakref.ref(er)
+        del er
+        gc.collect()
+        self.assertIs(ref(), None)
+
+    def test_runs_with_lock(self):
+        """
+        All code in ResultRegistry.stop() and register() is protected by a
+        lock.
+        """
+        self.assertTrue(ResultRegistry.stop.synchronized)
+        self.assertTrue(ResultRegistry.register.synchronized)
+
 
 class EventualResultTests(TestCase):
     """

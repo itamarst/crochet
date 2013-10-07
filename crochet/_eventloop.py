@@ -26,6 +26,23 @@ from ._resultstore import ResultStore
 _store = ResultStore()
 
 
+if hasattr(weakref, "WeakSet"):
+    WeakSet = weakref.WeakSet
+else:
+    class WeakSet(object):
+        """
+        Minimal WeakSet emulation.
+        """
+        def __init__(self):
+            self._items = weakref.WeakrefKeyDictionary()
+
+        def add(self, value):
+            self._items[value] = True
+
+        def __iter__(self):
+            return iter(self._items)
+
+
 class TimeoutError(Exception):
     """
     A timeout has been hit.
@@ -51,6 +68,33 @@ class ResultRegistry(object):
        ReactorStopped exception to unblock any remaining EventualResult.wait()
        calls.
     """
+    def __init__(self):
+        self._results = WeakSet()
+        self._stopped = False
+        self._lock = threading.Lock()
+
+    @synchronized
+    def register(self, result):
+        """
+        Register an EventualResult.
+
+        May be called in any thread.
+        """
+        if self._stopped:
+            raise ReactorStopped()
+        self._results.add(result)
+
+    @synchronized
+    def stop(self):
+        """
+        Indicate no more results will get pushed into EventualResults, since
+        the reactor has stopped.
+
+        This should be called in the reactor thread.
+        """
+        self._stopped = True
+        for result in self._results:
+            result._set_result(Failure(ReactorStopped()))
 
 
 class EventualResult(object):
@@ -73,6 +117,7 @@ class EventualResult(object):
         self._reactor = _reactor
         self._queue = Queue()
         self._result_retrieved = False
+        self._result_set = False
         if deferred is not None:
             self._connect_deferred(deferred)
 
@@ -85,13 +130,26 @@ class EventualResult(object):
         self._deferred = deferred
         # Because we use __del__, we need to make sure there are no cycles
         # involving this object, which is why we use a weakref:
-        def put(result, queue=weakref.ref(self._queue)):
-            queue = queue()
-            if queue:
-                queue.put(result)
+        def put(result, eventual=weakref.ref(self)):
+            eventual = eventual()
+            if eventual:
+                eventual._set_result(result)
             else:
                 err(result, "Unhandled error in EventualResult")
         deferred.addBoth(put)
+
+    def _set_result(self, result):
+        """
+        Set the result of the EventualResult, if not already set.
+
+        This can only happen in the reactor thread, either as a result of
+        Deferred firing, or as a result of ResultRegistry.stop(). So, no need
+        for thread-safety.
+        """
+        if self._result_set:
+            return
+        self._result_set = True
+        self._queue.put(result)
 
     def __del__(self):
         if self._result_retrieved:
