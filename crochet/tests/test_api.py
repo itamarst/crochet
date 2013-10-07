@@ -16,7 +16,17 @@ from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 from twisted.python import threadable
 from twisted.python.runtime import platform
-from twisted.internet.process import reapAllProcesses
+try:
+    from twisted.internet.process import reapAllProcesses
+except ImportError:
+    reapAllProcesses = None
+except SyntaxError:
+    if sys.version_info < (3, 3, 0):
+        raise
+    else:
+        # Process support is still not ported to Python 3 on some versions of
+        # Twisted.
+        reapAllProcesses = None
 
 from .._eventloop import (EventLoop, EventualResult, TimeoutError,
                           ResultRegistry, ReactorStopped)
@@ -777,4 +787,5 @@ class PublicAPITests(TestCase):
         self.assertIdentical(_main._reapAllProcesses, reapAllProcesses)
     if platform.type != "posix":
         test_reapAllProcesses.skip = "Only relevant on POSIX platforms"
-
+    if reapAllProcesses is None:
+        test_reapAllProcesses.skip = "Twisted does not yet support processes"

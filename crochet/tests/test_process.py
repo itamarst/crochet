@@ -60,3 +60,5 @@ sys.stdout.write("abc")
         self.assertEqual(result, b"abc")
     if platform.type != "posix":
         test_processExit.skip = "SIGCHLD is a POSIX-specific issue"
+    if sys.version_info >= (3, 0, 0):
+        test_processExit.skip = "Twisted does not support processes on Python 3 yet"
