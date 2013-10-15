@@ -1,17 +1,23 @@
 import os
-import sys
 
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
-dir_path = os.path.dirname(__file__)
-if os.path.exists(os.path.join(dir_path, "crochet")):
-    # Make sure local Crochet is imported:
-    sys.path.insert(0, dir_path)
 
-import crochet
+def get_crochet_version():
+    """
+    Get crochet version from version module without importing more than
+    necessary
+    """
+    this_dir_path = os.path.dirname(__file__)
+    crochet_module_path = os.path.join(this_dir_path, "crochet")
+    version_module_path = os.path.join(crochet_module_path, "_version.py")
+
+    # The version module contains a variable called __version__
+    exec(file(version_module_path).read())
+    return __version__
 
 setup(
     classifiers=[
@@ -26,11 +32,11 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
     name='crochet',
-    version=crochet.__version__,
+    version=get_crochet_version(),
     description="Use Twisted from threaded applications",
     install_requires=[
         "Twisted>=11.1",
-        ],
+    ],
     keywords="twisted threading",
     license="MIT",
     packages=["crochet", "crochet.tests"],
