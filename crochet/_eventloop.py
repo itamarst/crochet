@@ -72,9 +72,6 @@ class ResultRegistry(object):
         self._results = WeakSet()
         self._stopped = False
         self._lock = threading.Lock()
-        # We want to unblock EventualResult regardless of how the reactor is
-        # run, so we always register this:
-        reactor.addSystemEventTrigger("after", "shutdown", self.stop)
 
     @synchronized
     def register(self, result):
@@ -316,6 +313,16 @@ class EventLoop(object):
         lc.clock = self._reactor
         lc.start(0.1, False)
 
+    def _common_setup(self):
+        """
+        The minimal amount of setup done by both setup() and no_setup().
+        """
+        self._started = True
+        # We want to unblock EventualResult regardless of how the reactor is
+        # run, so we always register this:
+        self._reactor.addSystemEventTrigger(
+            "after", "shutdown", self._registry.stop)
+
     @synchronized
     def setup(self):
         """
@@ -329,7 +336,7 @@ class EventLoop(object):
         """
         if self._started:
             return
-        self._started = True
+        self._common_setup()
         if platform.type == "posix":
             self._reactor.callFromThread(self._startReapingProcesses)
         if self._startLoggingWithObserver:
@@ -364,7 +371,7 @@ class EventLoop(object):
             raise RuntimeError("no_setup() is intended to be called once, by a"
                                " Twisted application, before any libraries "
                                "using crochet are imported and call setup().")
-        self._started = True
+        self._common_setup()
 
     def run_in_reactor(self, function):
         """

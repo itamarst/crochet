@@ -35,7 +35,8 @@ Changelog
 Bug fixes:
 
 * Twisted does not have to be pre-installed to run ``setup.py``.
-
+* Importing Crochet does not have side-effects (installing reactor event)
+  any more.
 
 **0.9.0**
 

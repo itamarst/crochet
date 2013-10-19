@@ -95,16 +95,6 @@ class ResultRegistryTests(TestCase):
         self.assertTrue(ResultRegistry.stop.synchronized)
         self.assertTrue(ResultRegistry.register.synchronized)
 
-    def test_shutdown(self):
-        """
-        The ResultRegistry registers an after shutdown call to self.stop() in
-        the given reactor.
-        """
-        reactor = FakeReactor()
-        registry = ResultRegistry(reactor)
-        self.assertEqual(reactor.events,
-                         [("after", "shutdown", registry.stop)])
-
 
 class EventualResultTests(TestCase):
     """
@@ -748,10 +738,20 @@ except crochet.ReactorStopped:
         process = subprocess.Popen([sys.executable, "-c", program])
         self.assertEqual(process.wait(), 23)
 
+
 class PublicAPITests(TestCase):
     """
     Tests for the public API.
     """
+    def test_no_sideeffects(self):
+        """
+        Creating an EventLoop object, as is done in crochet.__init__, does not
+        call any methods on the objects it is created with.
+        """
+        c = EventLoop(None, lambda f, g: 1/0, lambda *args: 1/0,
+                      watchdog_thread=object(), reapAllProcesses=lambda: 1/0)
+        del c
+
     def test_eventloop_api(self):
         """
         An EventLoop object configured with the real reactor and
