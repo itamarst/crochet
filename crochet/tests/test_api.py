@@ -375,6 +375,40 @@ except crochet.ReactorStopped:
         process = subprocess.Popen([sys.executable, "-c", program])
         self.assertEqual(process.wait(), 23)
 
+    def test_reactor_stop_unblocks_EventualResult_in_threadpool(self):
+        """
+        Any EventualResult.wait() calls still waiting when the reactor has
+        stopped will get a ReactorStopped exception, even if it is running in
+        Twisted's thread pool.
+        """
+        program = """\
+import os, threading, signal, time, sys
+
+from twisted.internet.defer import Deferred
+from twisted.internet import reactor
+
+import crochet
+crochet.setup()
+
+@crochet.run_in_reactor
+def run():
+    reactor.callLater(0.1, reactor.stop)
+    return Deferred()
+
+result = [13]
+def inthread():
+    er = run()
+    try:
+        er.wait(timeout=10)
+    except crochet.ReactorStopped:
+        result[0] = 23
+reactor.callInThread(inthread)
+time.sleep(1)
+sys.exit(result[0])
+"""
+        process = subprocess.Popen([sys.executable, "-c", program])
+        self.assertEqual(process.wait(), 23)
+
     def test_immediate_cancel(self):
         """
         Immediately cancelling the result of @run_in_reactor function will

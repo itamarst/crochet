@@ -34,9 +34,12 @@ Changelog
 
 Bug fixes:
 
-* Twisted does not have to be pre-installed to run ``setup.py``.
+* Twisted does not have to be pre-installed to run ``setup.py``, thanks to
+  Chris Scutcher.
 * Importing Crochet does not have side-effects (installing reactor event)
   any more.
+* Blocking calls are interrupted earlier in the shutdown process, to reduce
+  scope for deadlocks.
 
 **0.9.0**
 
@@ -63,7 +66,8 @@ Bug fixes:
 
 **0.8.1**
 
-* ``EventualResult.wait()`` now raises error if called in the reactor thread.
+* ``EventualResult.wait()`` now raises error if called in the reactor thread,
+  thanks to David Buchmann.
 * Unittests are now included in the release tarball.
 * Allow Ctrl-C to interrupt ``EventualResult.wait(timeout=None)``.
 

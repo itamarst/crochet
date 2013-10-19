@@ -191,7 +191,7 @@ class SetupTests(TestCase):
         s = EventLoop(reactor, lambda f, *g: None)
         s.setup()
         self.assertEqual(reactor.events,
-                         [("after", "shutdown", s._registry.stop)])
+                         [("before", "shutdown", s._registry.stop)])
 
 
     def test_no_setup_registry_shutdown(self):
@@ -203,7 +203,7 @@ class SetupTests(TestCase):
         s = EventLoop(reactor, lambda f, *g: None)
         s.no_setup()
         self.assertEqual(reactor.events,
-                         [("after", "shutdown", s._registry.stop)])
+                         [("before", "shutdown", s._registry.stop)])
 
 
 class ProcessSetupTests(TestCase):
