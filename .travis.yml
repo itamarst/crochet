@@ -18,6 +18,7 @@ python:
 #   - 3.3
 
 install:
+    - python setup.py --version
     - pip install -q $TWISTED --use-mirrors
     - python setup.py -q install
 

@@ -9,7 +9,7 @@ except ImportError:
 def get_crochet_version():
     """
     Get crochet version from version module without importing more than
-    necessary
+    necessary.
     """
     this_dir_path = os.path.dirname(__file__)
     crochet_module_path = os.path.join(this_dir_path, "crochet")
@@ -18,6 +18,7 @@ def get_crochet_version():
     # The version module contains a variable called __version__
     exec(file(version_module_path).read())
     return __version__
+
 
 setup(
     classifiers=[
