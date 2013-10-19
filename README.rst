@@ -30,6 +30,13 @@ Bugs and feature requests should be filed at the project `Github page`_.
 Changelog
 ---------
 
+**1.0.0**
+
+Bug fixes:
+
+* Twisted does not have to be pre-installed to run ``setup.py``.
+
+
 **0.9.0**
 
 New features:
