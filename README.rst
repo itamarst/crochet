@@ -32,14 +32,19 @@ Changelog
 
 **1.0.0**
 
+Documentation:
+
+* Added section on use cases and alternatives. Thanks to Tobias Oberstein for
+  the suggestion.
+
 Bug fixes:
 
 * Twisted does not have to be pre-installed to run ``setup.py``, thanks to
-  Chris Scutcher.
+  Paul Weaver for bug report and Chris Scutcher for patch.
 * Importing Crochet does not have side-effects (installing reactor event)
   any more.
 * Blocking calls are interrupted earlier in the shutdown process, to reduce
-  scope for deadlocks.
+  scope for deadlocks. Thanks to rmorehead for bug report.
 
 **0.9.0**
 
@@ -52,7 +57,8 @@ New features:
 * Refactored ``@run_in_reactor``, making it a bit more responsive.
 * Blocking operations which would otherwise never finish due to reactor having
   stopped (``EventualResult.wait()`` or ``@wait_for_reactor`` decorated call)
-  will be interrupted with a ``ReactorStopped`` exception.
+  will be interrupted with a ``ReactorStopped`` exception. Thanks to rmorehead
+  for the bug report.
 
 Bug fixes:
 
