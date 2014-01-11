@@ -8,15 +8,20 @@ import sys
 
 from twisted.internet import reactor
 from twisted.python.log import startLoggingWithObserver
-try:
-    from twisted.internet.process import reapAllProcesses
-except SyntaxError:
-    if sys.version_info < (3, 3, 0):
-        raise
-    else:
-        # Process support is still not ported to Python 3 on some versions of
-        # Twisted.
-        reapAllProcesses = lambda: None
+from twisted.python.runtime import platform
+if platform.type == "posix":
+    try:
+        from twisted.internet.process import reapAllProcesses
+    except SyntaxError:
+        if sys.version_info < (3, 3, 0):
+            raise
+        else:
+            # Process support is still not ported to Python 3 on some versions
+            # of Twisted.
+            reapAllProcesses = lambda: None
+else:
+    # waitpid() is only necessary on POSIX:
+    reapAllProcesses = lambda: None
 
 from ._shutdown import _watchdog, register
 from ._eventloop import (EventualResult, TimeoutError, EventLoop, _store,
