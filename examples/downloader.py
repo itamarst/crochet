@@ -39,6 +39,9 @@ def index():
     except TimeoutError:
         session['download'] = result.stash()
         return "Download in progress..."
+    except:
+        # The original traceback of the exception:
+        return "Download failed:\n" + result.original_failure().getTraceback()
 
 
 if __name__ == '__main__':

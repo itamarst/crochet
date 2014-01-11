@@ -104,7 +104,7 @@ function that calls Twisted APIs with ``run_in_reactor`` has two consequences:
   instance, wrapping the result of the underlying code, with particular
   support for ``Deferred`` instances.
 
-``EventualResult`` has the following methods:
+``EventualResult`` has the following basic methods:
 
 * ``wait(timeout=None)``: Return the result when it becomes available; if the
   result is an exception it will be raised. If an optional timeout is given
@@ -114,6 +114,14 @@ function that calls Twisted APIs with ``run_in_reactor`` has two consequences:
   ``Deferred``. Many, but not all, ``Deferred`` results returned from Twisted
   allow the underlying operation to be canceled. In any case this should be
   considered a best effort cancellation.
+
+There are also some more specialized methods:
+
+* ``original_failure()`` returns the underlying Twisted `Failure`_ object if
+  your result was a raised exception, allowing you to print the original
+  traceback that caused the exception. This is necessary because the default
+  exception you will see raised from ``EventualResult.wait()`` won't include
+  the stack from the underlying Twisted code where the exception originated.
 * ``stash()``: Sometimes you want to store the ``EventualResult`` in memory
   for later retrieval. This is specifically useful when you want to store a
   reference to the ``EventualResult`` in a web session like Flask's (see the
@@ -129,6 +137,7 @@ will eventually show the downloaded page.
 
 .. literalinclude:: ../examples/downloader.py
 
+.. _Failure: https://twistedmatrix.com/documents/current/api/twisted.python.failure.Failure.html
 
 Using Crochet from Twisted Applications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
