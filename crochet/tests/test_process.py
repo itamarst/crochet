@@ -8,6 +8,8 @@ import sys
 from twisted.trial.unittest import TestCase
 from twisted.python.runtime import platform
 
+from ..tests import crochet_directory
+
 class ProcessTests(TestCase):
     """
     Tests for process support.
@@ -55,6 +57,7 @@ run().wait(10)
 sys.stdout.write("abc")
 """
         process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory,
                                    stdout=subprocess.PIPE)
         result = process.stdout.read()
         self.assertEqual(result, b"abc")

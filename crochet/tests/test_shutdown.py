@@ -12,6 +12,7 @@ from twisted.trial.unittest import TestCase
 
 from crochet._shutdown import (Watchdog, FunctionRegistry, _watchdog, register,
                                _registry)
+from ..tests import crochet_directory
 
 
 class ShutdownTests(TestCase):
@@ -50,6 +51,7 @@ register(stop, 1, y=2)
 sys.exit()
 """
         process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory,
                                    stdout=subprocess.PIPE)
         result = process.stdout.read()
         self.assertEqual(process.wait(), 0)

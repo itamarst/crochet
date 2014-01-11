@@ -33,7 +33,7 @@ from .._eventloop import (EventLoop, EventualResult, TimeoutError,
 from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
                 run_in_reactor, wait_for_reactor)
-
+from ..tests import crochet_directory
 
 
 class ResultRegistryTests(TestCase):
@@ -323,7 +323,8 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program])
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
 
     def test_reactor_stop_unblocks_EventualResult(self):
@@ -372,7 +373,8 @@ try:
 except crochet.ReactorStopped:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program])
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
 
     def test_reactor_stop_unblocks_EventualResult_in_threadpool(self):
@@ -406,7 +408,8 @@ reactor.callInThread(inthread)
 time.sleep(1)
 sys.exit(result[0])
 """
-        process = subprocess.Popen([sys.executable, "-c", program])
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
 
     def test_immediate_cancel(self):
@@ -437,7 +440,8 @@ except CancelledError:
 else:
     sys.exit(3)
 """
-        process = subprocess.Popen([sys.executable, "-c", program])
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory,)
         self.assertEqual(process.wait(), 23)
 
 
@@ -742,7 +746,8 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program])
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
 
     def test_reactor_stop_unblocks(self):
@@ -769,7 +774,8 @@ try:
 except crochet.ReactorStopped:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program])
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
 
 
