@@ -19,7 +19,7 @@ class Watchdog(threading.Thread):
     """
 
     def __init__(self, canary, shutdown_function):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name="CrochetShutdownWatchdog")
         self._canary = canary
         self._shutdown_function = shutdown_function
 

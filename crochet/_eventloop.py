@@ -261,7 +261,8 @@ class ThreadLogObserver(object):
     def __init__(self, observer):
         self._observer = observer
         self._queue = Queue()
-        self._thread = threading.Thread(target=self._reader)
+        self._thread = threading.Thread(target=self._reader,
+                                        name="CrochetLogWriter")
         self._thread.start()
 
     def _reader(self):
@@ -347,7 +348,8 @@ class EventLoop(object):
             # shut down:
             self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
         t = threading.Thread(
-            target=lambda: self._reactor.run(installSignalHandlers=False))
+            target=lambda: self._reactor.run(installSignalHandlers=False),
+            name="CrochetReactor")
         t.start()
         self._atexit_register(self._reactor.callFromThread,
                               self._reactor.stop)
