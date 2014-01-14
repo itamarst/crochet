@@ -16,17 +16,19 @@ from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 from twisted.python import threadable
 from twisted.python.runtime import platform
-try:
-    from twisted.internet.process import reapAllProcesses
-except ImportError:
+if platform.type == "posix":
+    try:
+        from twisted.internet.process import reapAllProcesses
+    except SyntaxError:
+        if sys.version_info < (3, 3, 0):
+            raise
+        else:
+            # Process support is still not ported to Python 3 on some versions
+            # of Twisted.
+            reapAllProcesses = None
+else:
+    # waitpid() is only necessary on POSIX:
     reapAllProcesses = None
-except SyntaxError:
-    if sys.version_info < (3, 3, 0):
-        raise
-    else:
-        # Process support is still not ported to Python 3 on some versions of
-        # Twisted.
-        reapAllProcesses = None
 
 from .._eventloop import (EventLoop, EventualResult, TimeoutError,
                           ResultRegistry, ReactorStopped)
