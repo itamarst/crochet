@@ -308,16 +308,26 @@ from twisted.internet.defer import Deferred
 
 def interrupt():
     time.sleep(0.1) # Make sure we've hit wait()
-    os.kill(os.getpid(), signal.SIGINT)
+    if sys.platform.startswith('win'):
+        os.kill(os.getpid(), signal.CTRL_BREAK_EVENT)
+    else:
+        os.kill(os.getpid(), signal.SIGINT)
     time.sleep(1)
     # Still running, test shall fail...
-    os.kill(os.getpid(), signal.SIGKILL)
+    if sys.platform.startswith('win'):
+        os.kill(os.getpid(), signal.SIGTERM)
+    else:
+        os.kill(os.getpid(), signal.SIGKILL)
 t = threading.Thread(target=interrupt)
 t.setDaemon(True)
 t.start()
 
 d = Deferred()
 e = crochet.EventualResult(d)
+
+if sys.platform.startswith('win'):
+    signal.signal(signal.SIGBREAK, signal.default_int_handler)
+
 try:
     # Queue.get() has special non-interruptible behavior if not given timeout,
     # so don't give timeout here.
@@ -325,8 +335,11 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program],
-                                   cwd=crochet_directory)
+	kw = {
+            'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP,
+            'cwd': crochet_directory
+        }
+        process = subprocess.Popen([sys.executable, "-c", program], **kw)
         self.assertEqual(process.wait(), 23)
 
     def test_reactor_stop_unblocks_EventualResult(self):
@@ -731,10 +744,16 @@ from twisted.internet.defer import Deferred
 
 def interrupt():
     time.sleep(0.1) # Make sure we've hit wait()
-    os.kill(os.getpid(), signal.SIGINT)
+    if sys.platform.startswith('win'):
+        os.kill(os.getpid(), signal.CTRL_BREAK_EVENT)
+    else:
+        os.kill(os.getpid(), signal.SIGINT)
     time.sleep(1)
     # Still running, test shall fail...
-    os.kill(os.getpid(), signal.SIGKILL)
+    if sys.platform.startswith('win'):
+        os.kill(os.getpid(), signal.SIGTERM)
+    else:
+        os.kill(os.getpid(), signal.SIGKILL)
 t = threading.Thread(target=interrupt)
 t.setDaemon(True)
 t.start()
@@ -743,13 +762,19 @@ t.start()
 def wait():
     return Deferred()
 
+if sys.platform.startswith('win'):
+    signal.signal(signal.SIGBREAK, signal.default_int_handler)
+
 try:
     wait()
 except KeyboardInterrupt:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program],
-                                   cwd=crochet_directory)
+	kw = {
+            'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP,
+            'cwd': crochet_directory
+        }
+        process = subprocess.Popen([sys.executable, "-c", program], **kw)
         self.assertEqual(process.wait(), 23)
 
     def test_reactor_stop_unblocks(self):
