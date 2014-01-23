@@ -30,6 +30,18 @@ Bugs and feature requests should be filed at the project `Github page`_.
 Changelog
 ---------
 
+**1.1.0**
+
+Documentation:
+
+* ``EventualResult.original_failure`` is now documented.
+
+Bug fixes:
+
+* Crochet should now work on Windows, thanks to Konstantinos Koukopoulos.
+* It should now be possible to run Crochet tests without adding its absolute
+  path to PYTHONPATH or installing it first.
+
 **1.0.0**
 
 Documentation:
