@@ -12,7 +12,7 @@ from twisted.python.runtime import platform
 if platform.type == "posix":
     try:
         from twisted.internet.process import reapAllProcesses
-    except SyntaxError:
+    except (SyntaxError, ImportError):
         if sys.version_info < (3, 3, 0):
             raise
         else:
