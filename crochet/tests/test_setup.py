@@ -275,3 +275,27 @@ class ThreadLogObserverTest(TestCase):
         # Wait for writing to finish:
         threadLog._thread.join()
         self.assertEqual(log, [(ident, msg1), (ident, msg2)])
+
+    def test_emit_locked(self):
+        """
+        ThreadLogObserver.emit runs the wrapped observer's in its thread, with
+        the given message.
+        """
+        log = []
+        def observer(msg):
+            log.append((threading.current_thread().ident, msg))
+
+        threadLog = ThreadLogObserver(observer)
+        ident = threadLog._thread.ident
+        msg1 = {"a": "b"}
+
+        # check emit while queue is locked
+        with threadLog._queue.mutex:
+            threadLog(msg1)
+        threadLog.stop()
+        # Wait for writing to finish:
+        threadLog._thread.join()
+        self.assertEqual(log, [(ident, msg1)])
+
+
+
