@@ -116,6 +116,9 @@ class EventualResult(object):
         self._deferred = deferred
         self._reactor = _reactor
         self._queue = Queue()
+        # change to recursive lock so we can
+        # know which thread is locking queue
+        self._queue.mutex = threading.RLock()
         self._result_retrieved = False
         self._result_set = False
         if deferred is not None:
@@ -261,20 +264,39 @@ class ThreadLogObserver(object):
     def __init__(self, observer):
         self._observer = observer
         self._queue = Queue()
+        self._queue.mutex = threading.RLock()
+        self._while_locked_calls = []
         self._thread = threading.Thread(target=self._reader,
                                         name="CrochetLogWriter")
         self._thread.start()
+
 
     def _reader(self):
         """
         Runs in a thread, reads messages from a queue and writes them to
         the wrapped observer.
         """
+        def get():
+            if self._while_locked_calls:
+                return self._while_locked_calls.pop()
+            else:
+                item = self._queue.get()
+                # Prefer queued calls, they may have been delayed.
+                if not self._while_locked_calls:
+                    return item
+                else:
+                    self._while_locked_calls.append(item)
+                    return self._while_locked_calls.pop()
+
         while True:
-            item = self._queue.get()
+            item = get()
             if item is self._DONE:
+                while self._while_locked_calls:
+                    self._observer(self._while_locked_calls.pop())
                 return
             self._observer(item)
+
+
 
     def stop(self):
         """
@@ -286,7 +308,14 @@ class ThreadLogObserver(object):
         """
         A log observer that writes to a queue.
         """
-        self._queue.put(msg)
+        if self._queue.mutex._is_owned():
+            # already locked by this thread - sidestep deadlock or
+            # queue corruption.
+            self._while_locked_calls.append(msg)
+        else:
+            # we know this thread isn't locking it, so we can
+            # proceed
+            self._queue.put(msg)
 
 
 class EventLoop(object):
