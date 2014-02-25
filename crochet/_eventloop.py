@@ -265,6 +265,7 @@ class ThreadLogObserver(object):
             from twisted.internet.pollreactor import SelectReactor
             reactorFactory = SelectReactor
         self._logWritingReactor = reactorFactory()
+        self._logWritingReactor._registerAsIOThread = False
         self._thread = threading.Thread(target=self._reader,
                                         name="CrochetLogWriter")
         self._thread.start()
