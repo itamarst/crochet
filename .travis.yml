@@ -1,28 +1,32 @@
-env:
-    - TWISTED=Twisted==11.1
-    - TWISTED=Twisted==12.0
-    - TWISTED=Twisted==12.1
-    - TWISTED=Twisted==12.2
-    - TWISTED=Twisted==12.3
-    - TWISTED=Twisted==13.0
-    - TWISTED=Twisted==13.1
-
 language: python
+
+env:
+    - TWISTED=Twisted==12.0 RUNTESTS=trial
+    - TWISTED=Twisted==12.1 RUNTESTS=trial
+    - TWISTED=Twisted==12.2 RUNTESTS=trial
+    - TWISTED=Twisted==12.3 RUNTESTS=trial
+    - TWISTED=Twisted==13.0 RUNTESTS=trial
+    - TWISTED=Twisted==13.1 RUNTESTS=trial
+    - TWISTED=Twisted==13.2 RUNTESTS=trial
+
+matrix:
+    include:
+        python:
+            - 3.3
+        env:
+            - TWISTED=git+https://github.com/twisted/twisted.git RUNTESTS="python -m unittest discover"
 
 python:
     - 2.6
     - 2.7
     - pypy
-# Python 3.3 works, but automated installation and test running are still
-# different than on Python 2:
-#   - 3.3
 
 install:
     - python setup.py --version
-    - pip install -q $TWISTED --use-mirrors
+    - pip install -q --no-use-wheel $TWISTED --use-mirrors
     - python setup.py -q install
 
-script: trial crochet
+script: $RUNTESTS crochet.tests
 
 notifications:
   email: false
