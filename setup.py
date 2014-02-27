@@ -16,8 +16,9 @@ def get_crochet_version():
     version_module_path = os.path.join(crochet_module_path, "_version.py")
 
     # The version module contains a variable called __version__
-    exec(file(version_module_path).read())
-    return __version__
+    with open(version_module_path) as version_module:
+        exec(open(version_module).read())
+    return locals()["__version__"]
 
 
 setup(
