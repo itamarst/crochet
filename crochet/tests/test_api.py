@@ -306,27 +306,28 @@ import crochet
 crochet.setup()
 from twisted.internet.defer import Deferred
 
+if sys.platform.startswith('win'):
+    signal.signal(signal.SIGBREAK, signal.default_int_handler)
+    sig_int=signal.CTRL_BREAK_EVENT
+    sig_kill=signal.SIGTERM
+else:
+    sig_int=signal.SIGINT
+    sig_kill=signal.SIGKILL
+
+
 def interrupt():
     time.sleep(0.1) # Make sure we've hit wait()
-    if sys.platform.startswith('win'):
-        os.kill(os.getpid(), signal.CTRL_BREAK_EVENT)
-    else:
-        os.kill(os.getpid(), signal.SIGINT)
+    os.kill(os.getpid(), sig_int)
     time.sleep(1)
     # Still running, test shall fail...
-    if sys.platform.startswith('win'):
-        os.kill(os.getpid(), signal.SIGTERM)
-    else:
-        os.kill(os.getpid(), signal.SIGKILL)
+    os.kill(os.getpid(), sig_kill)
+
 t = threading.Thread(target=interrupt)
 t.setDaemon(True)
 t.start()
 
 d = Deferred()
 e = crochet.EventualResult(d)
-
-if sys.platform.startswith('win'):
-    signal.signal(signal.SIGBREAK, signal.default_int_handler)
 
 try:
     # Queue.get() has special non-interruptible behavior if not given timeout,
@@ -741,18 +742,22 @@ import crochet
 crochet.setup()
 from twisted.internet.defer import Deferred
 
+if sys.platform.startswith('win'):
+    signal.signal(signal.SIGBREAK, signal.default_int_handler)
+    sig_int=signal.CTRL_BREAK_EVENT
+    sig_kill=signal.SIGTERM
+else:
+    sig_int=signal.SIGINT
+    sig_kill=signal.SIGKILL
+
+
 def interrupt():
     time.sleep(0.1) # Make sure we've hit wait()
-    if sys.platform.startswith('win'):
-        os.kill(os.getpid(), signal.CTRL_BREAK_EVENT)
-    else:
-        os.kill(os.getpid(), signal.SIGINT)
+    os.kill(os.getpid(), sig_int)
     time.sleep(1)
     # Still running, test shall fail...
-    if sys.platform.startswith('win'):
-        os.kill(os.getpid(), signal.SIGTERM)
-    else:
-        os.kill(os.getpid(), signal.SIGKILL)
+    os.kill(os.getpid(), sig_kill)
+
 t = threading.Thread(target=interrupt)
 t.setDaemon(True)
 t.start()
@@ -760,9 +765,6 @@ t.start()
 @crochet.wait_for_reactor
 def wait():
     return Deferred()
-
-if sys.platform.startswith('win'):
-    signal.signal(signal.SIGBREAK, signal.default_int_handler)
 
 try:
     wait()
