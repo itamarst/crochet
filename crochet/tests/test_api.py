@@ -336,7 +336,7 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-	kw = { 'cwd': crochet_directory }
+        kw = { 'cwd': crochet_directory }
         if platform.type.startswith('win'):
             kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
         process = subprocess.Popen([sys.executable, "-c", program], **kw)
@@ -771,7 +771,7 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-	kw = { 'cwd': crochet_directory }
+        kw = { 'cwd': crochet_directory }
         if platform.type.startswith('win'):
             kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
         process = subprocess.Popen([sys.executable, "-c", program], **kw)
