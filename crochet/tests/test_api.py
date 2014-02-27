@@ -337,6 +337,9 @@ except KeyboardInterrupt:
     sys.exit(23)
 """
         kw = { 'cwd': crochet_directory }
+        # on Windows the only way to interrupt a subprocess reliably is to 
+        # create a new process group:
+        # http://docs.python.org/2/library/subprocess.html#subprocess.CREATE_NEW_PROCESS_GROUP
         if platform.type.startswith('win'):
             kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
         process = subprocess.Popen([sys.executable, "-c", program], **kw)
