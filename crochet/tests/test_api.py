@@ -306,18 +306,29 @@ import crochet
 crochet.setup()
 from twisted.internet.defer import Deferred
 
+if sys.platform.startswith('win'):
+    signal.signal(signal.SIGBREAK, signal.default_int_handler)
+    sig_int=signal.CTRL_BREAK_EVENT
+    sig_kill=signal.SIGTERM
+else:
+    sig_int=signal.SIGINT
+    sig_kill=signal.SIGKILL
+
+
 def interrupt():
     time.sleep(0.1) # Make sure we've hit wait()
-    os.kill(os.getpid(), signal.SIGINT)
+    os.kill(os.getpid(), sig_int)
     time.sleep(1)
     # Still running, test shall fail...
-    os.kill(os.getpid(), signal.SIGKILL)
+    os.kill(os.getpid(), sig_kill)
+
 t = threading.Thread(target=interrupt)
 t.setDaemon(True)
 t.start()
 
 d = Deferred()
 e = crochet.EventualResult(d)
+
 try:
     # Queue.get() has special non-interruptible behavior if not given timeout,
     # so don't give timeout here.
@@ -325,8 +336,13 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program],
-                                   cwd=crochet_directory)
+        kw = { 'cwd': crochet_directory }
+        # on Windows the only way to interrupt a subprocess reliably is to 
+        # create a new process group:
+        # http://docs.python.org/2/library/subprocess.html#subprocess.CREATE_NEW_PROCESS_GROUP
+        if platform.type.startswith('win'):
+            kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+        process = subprocess.Popen([sys.executable, "-c", program], **kw)
         self.assertEqual(process.wait(), 23)
 
     def test_reactor_stop_unblocks_EventualResult(self):
@@ -729,12 +745,22 @@ import crochet
 crochet.setup()
 from twisted.internet.defer import Deferred
 
+if sys.platform.startswith('win'):
+    signal.signal(signal.SIGBREAK, signal.default_int_handler)
+    sig_int=signal.CTRL_BREAK_EVENT
+    sig_kill=signal.SIGTERM
+else:
+    sig_int=signal.SIGINT
+    sig_kill=signal.SIGKILL
+
+
 def interrupt():
     time.sleep(0.1) # Make sure we've hit wait()
-    os.kill(os.getpid(), signal.SIGINT)
+    os.kill(os.getpid(), sig_int)
     time.sleep(1)
     # Still running, test shall fail...
-    os.kill(os.getpid(), signal.SIGKILL)
+    os.kill(os.getpid(), sig_kill)
+
 t = threading.Thread(target=interrupt)
 t.setDaemon(True)
 t.start()
@@ -748,8 +774,10 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-        process = subprocess.Popen([sys.executable, "-c", program],
-                                   cwd=crochet_directory)
+        kw = { 'cwd': crochet_directory }
+        if platform.type.startswith('win'):
+            kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+        process = subprocess.Popen([sys.executable, "-c", program], **kw)
         self.assertEqual(process.wait(), 23)
 
     def test_reactor_stop_unblocks(self):
