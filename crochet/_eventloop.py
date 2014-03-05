@@ -4,6 +4,7 @@ Expose Twisted's event loop to threaded programs.
 
 from __future__ import absolute_import
 
+import select
 import threading
 import weakref
 try:
@@ -255,12 +256,16 @@ class ThreadLogObserver(object):
     In particular, used to wrap PythonLoggingObserver, so that blocking
     logging.py Handlers don't block the event loop.
     """
-
-    _DONE = object()
-
     def __init__(self, observer):
         self._observer = observer
-        self._queue = Queue()
+        if getattr(select, "poll", None):
+            from twisted.internet.pollreactor import PollReactor
+            reactorFactory = PollReactor
+        else:
+            from twisted.internet.selectreactor import SelectReactor
+            reactorFactory = SelectReactor
+        self._logWritingReactor = reactorFactory()
+        self._logWritingReactor._registerAsIOThread = False
         self._thread = threading.Thread(target=self._reader,
                                         name="CrochetLogWriter")
         self._thread.start()
@@ -270,23 +275,19 @@ class ThreadLogObserver(object):
         Runs in a thread, reads messages from a queue and writes them to
         the wrapped observer.
         """
-        while True:
-            item = self._queue.get()
-            if item is self._DONE:
-                return
-            self._observer(item)
+        self._logWritingReactor.run(installSignalHandlers=False)
 
     def stop(self):
         """
         Stop the thread.
         """
-        self._queue.put(self._DONE)
+        self._logWritingReactor.callFromThread(self._logWritingReactor.stop)
 
     def __call__(self, msg):
         """
         A log observer that writes to a queue.
         """
-        self._queue.put(msg)
+        self._logWritingReactor.callFromThread(self._observer, msg)
 
 
 class EventLoop(object):

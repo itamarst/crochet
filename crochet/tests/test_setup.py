@@ -9,6 +9,7 @@ import threading
 from twisted.trial.unittest import TestCase
 from twisted.python.log import PythonLoggingObserver
 from twisted.python.runtime import platform
+from twisted.python import threadable
 from twisted.internet.task import Clock
 
 from .._eventloop import EventLoop, ThreadLogObserver, _store
@@ -275,3 +276,17 @@ class ThreadLogObserverTest(TestCase):
         # Wait for writing to finish:
         threadLog._thread.join()
         self.assertEqual(log, [(ident, msg1), (ident, msg2)])
+
+
+    def test_ioThreadUnchanged(self):
+        """
+        ThreadLogObserver does not change the Twisted I/O thread (which is
+        supposed to match the thread the main reactor is running in.)
+        """
+        threadLog = ThreadLogObserver(None)
+        threadLog.stop()
+        threadLog._thread.join()
+        self.assertIn(threadable.ioThread,
+                      # Either reactor was never run, or run in thread running
+                      # the tests:
+                      (None, threading.current_thread().ident))
