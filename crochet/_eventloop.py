@@ -262,7 +262,7 @@ class ThreadLogObserver(object):
             from twisted.internet.pollreactor import PollReactor
             reactorFactory = PollReactor
         else:
-            from twisted.internet.pollreactor import SelectReactor
+            from twisted.internet.selectreactor import SelectReactor
             reactorFactory = SelectReactor
         self._logWritingReactor = reactorFactory()
         self._logWritingReactor._registerAsIOThread = False
