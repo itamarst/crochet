@@ -32,15 +32,21 @@ Changelog
 
 **1.1.0**
 
+Bug fixes:
+
+* ``EventualResult.wait()`` can now be used safely from multiple threads,
+  thanks to Gavin Panella for reporting the bug.
+* Fixed reentrancy deadlock in the logging code caused by
+  http://bugs.python.org/issue14976, thanks to Rod Morehead for reporting the
+  bug.
+* Crochet now installs on Python 3.3 again, thanks to Ben Cordero.
+* Crochet should now work on Windows, thanks to Konstantinos Koukopoulos.
+* Crochet tests can now run without adding its absolute path to PYTHONPATH or
+  installing it first.
+
 Documentation:
 
 * ``EventualResult.original_failure`` is now documented.
-
-Bug fixes:
-
-* Crochet should now work on Windows, thanks to Konstantinos Koukopoulos.
-* It should now be possible to run Crochet tests without adding its absolute
-  path to PYTHONPATH or installing it first.
 
 **1.0.0**
 
