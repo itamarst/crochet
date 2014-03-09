@@ -16,8 +16,8 @@ python:
 
 matrix:
     include:
-        python: 3.3
-        env: TWISTED=git+https://github.com/twisted/twisted.git RUNTESTS="python-m unittest discover"
+       - python: 3.3
+         env: TWISTED=git+https://github.com/twisted/twisted.git RUNTESTS="python-m unittest discover"
 
 install:
     - python setup.py --version
