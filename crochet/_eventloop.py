@@ -7,10 +7,6 @@ from __future__ import absolute_import
 import select
 import threading
 import weakref
-try:
-    from queue import Queue, Empty
-except ImportError:
-    from Queue import Queue, Empty
 from functools import wraps
 
 from twisted.python import threadable
@@ -116,9 +112,9 @@ class EventualResult(object):
         """
         self._deferred = deferred
         self._reactor = _reactor
-        self._queue = Queue()
+        self._value = None
         self._result_retrieved = False
-        self._result_set = False
+        self._result_set = threading.Event()
         if deferred is not None:
             self._connect_deferred(deferred)
 
@@ -147,20 +143,16 @@ class EventualResult(object):
         Deferred firing, or as a result of ResultRegistry.stop(). So, no need
         for thread-safety.
         """
-        if self._result_set:
+        if self._result_set.isSet():
             return
-        self._result_set = True
-        self._queue.put(result)
+        self._value = result
+        self._result_set.set()
 
     def __del__(self):
-        if self._result_retrieved:
+        if self._result_retrieved or not self._result_set.isSet():
             return
-        try:
-            result = self._queue.get(timeout=0)
-        except Empty:
-            return
-        if isinstance(result, Failure):
-            err(result, "Unhandled error in EventualResult")
+        if isinstance(self._value, Failure):
+            err(self._value, "Unhandled error in EventualResult")
 
     def cancel(self):
         """
@@ -190,13 +182,13 @@ class EventualResult(object):
         if timeout is None:
             # Queue.get(None) won't get interrupted by Ctrl-C...
             timeout = 2 ** 31
-        try:
-            result = self._queue.get(timeout=timeout)
-        except Empty:
+        self._result_set.wait(timeout)
+        # In Python 2.6 we can't rely on the return result of wait(), so we
+        # have to check manually:
+        if not self._result_set.is_set():
             raise TimeoutError()
         self._result_retrieved = True
-        self._queue.put(result) # allow next _result() call to get a value out
-        return result
+        return self._value
 
     def wait(self, timeout=None):
         """
