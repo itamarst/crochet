@@ -35,7 +35,7 @@ setup(
     ],
     name='crochet',
     version=get_crochet_version(),
-    description="Use Twisted from threaded applications",
+    description="Use Twisted anywhere!",
     install_requires=[
         "Twisted>=11.1",
     ],
@@ -44,6 +44,6 @@ setup(
     packages=["crochet", "crochet.tests"],
     url="https://github.com/itamarst/crochet",
     maintainer='Itamar Turner-Trauring',
-    maintainer_email='itamar@futurefoundries.com',
+    maintainer_email='itamar@itamarst.org',
     long_description=open('README.rst').read(),
 )
