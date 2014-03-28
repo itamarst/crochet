@@ -6,7 +6,7 @@ Example of implementing timeouts using Deferred cancellation.
 from twisted.mail import smtp
 
 from crochet import setup, run_in_reactor, TimeoutError
-crochet.setup()
+setup()
 
 # Crochet layer, wrapping Twisted API in blocking call:
 @run_in_reactor
