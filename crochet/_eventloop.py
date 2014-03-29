@@ -401,6 +401,26 @@ class EventLoop(object):
             return run().wait()
         return wrapper
 
+    def wait_for(self, timeout):
+        """
+        A decorator factory that ensures the wrapped function runs in the
+        reactor thread.
+
+        When the wrapped function is called, its result is returned or its
+        exception raised. Deferreds are handled transparently. Calls will
+        timeout after the given number of seconds (a float), raising a
+        crochet.TimeoutError, and cancelling the Deferred being waited on.
+        """
+        def decorator(function):
+            @wraps(function)
+            def wrapper(*args, **kwargs):
+                @self.run_in_reactor
+                def run():
+                    return function(*args, **kwargs)
+                return run().wait()
+            return wrapper
+        return decorator
+
     def in_reactor(self, function):
         """
         DEPRECATED, use run_in_reactor.

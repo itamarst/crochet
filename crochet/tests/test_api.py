@@ -34,7 +34,7 @@ from .._eventloop import (EventLoop, EventualResult, TimeoutError,
                           ResultRegistry, ReactorStopped)
 from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
-                run_in_reactor, wait_for_reactor)
+                run_in_reactor, wait_for_reactor, wait_for)
 from ..tests import crochet_directory
 
 
@@ -828,6 +828,16 @@ class WaitForReactorTests(WaitTestsMixin, TestCase):
         return self.eventloop.wait_for_reactor
 
 
+class WaitForTests(WaitTestsMixin, TestCase):
+    """
+    Tests for the wait_for_reactor decorator.
+    """
+    DECORATOR_CALL = "wait_for(timeout=5)"
+
+    def decorator(self):
+        return lambda func: self.eventloop.wait_for(timeout=5)(func)
+
+
 class PublicAPITests(TestCase):
     """
     Tests for the public API.
@@ -855,6 +865,7 @@ class PublicAPITests(TestCase):
         self.assertEqual(_main.in_reactor, in_reactor)
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
         self.assertEqual(_main.wait_for_reactor, wait_for_reactor)
+        self.assertEqual(_main.wait_for, wait_for)
         self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)
