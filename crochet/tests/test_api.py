@@ -11,7 +11,7 @@ import gc
 import sys
 import weakref
 
-from twisted.trial.unittest import TestCase, SkipTest
+from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 from twisted.python import threadable
@@ -345,13 +345,6 @@ except KeyboardInterrupt:
         process = subprocess.Popen([sys.executable, "-c", program], **kw)
         self.assertEqual(process.wait(), 23)
 
-    def test_reactor_stop_unblocks_EventualResult(self):
-        """
-        Any EventualResult.wait() calls still waiting when the reactor has
-        stopped will get a ReactorStopped exception.
-        """
-        raise SkipTest("Not done yet.")
-
     def test_connect_deferred(self):
         """
         If an EventualResult is created with None,
@@ -635,63 +628,85 @@ class RunInReactorTests(TestCase):
         self.assertIn(result, c._registry._results)
 
 
-class WaitForReactorTests(TestCase):
+class WaitTestsMixin(object):
     """
-    Tests for the wait_for_reactor decorator.
+    Tests mixin for the wait_for_reactor/wait_for decorators.
     """
+    def setUp(self):
+        self.reactor = FakeReactor()
+        self.eventloop = EventLoop(self.reactor, lambda f, g: None)
+
+    def decorator(self):
+        """
+        Return a callable that decorates a function, using the decorator being
+        tested.
+        """
+        raise NotImplementedError()
+
+    def make_wrapped_function(self):
+        """
+        Return a function wrapped with the decorator being tested that returns
+        its first argument, or raises it if it's an exception.
+        """
+        decorator = self.decorator()
+        @decorator
+        def passthrough(argument):
+            if isinstance(argument, Exception):
+                raise argument
+            return argument
+        return passthrough
+
     def test_name(self):
         """
-        The function decorated with run_in_reactor has the same name as the
+        The function decorated with the wait decorator has the same name as the
         original function.
         """
-        c = EventLoop(FakeReactor(), lambda f, g: None)
-
-        @c.wait_for_reactor
-        def some_name():
+        decorator = self.decorator()
+        @decorator
+        def some_name(argument):
             pass
         self.assertEqual(some_name.__name__, "some_name")
 
     def test_reactor_thread_disallowed(self):
         """
-        Functions decorated with wait_for_reactor() cannot be called from the
+        Functions decorated with the wait decorator cannot be called from the
         reactor thread.
         """
         self.patch(threadable, "isInIOThread", lambda: True)
-        c = EventLoop(FakeReactor(), lambda f, g: None)
-        @c.wait_for_reactor
-        def f():
-            pass
-        self.assertRaises(RuntimeError, f)
+        f = self.make_wrapped_function()
+        self.assertRaises(RuntimeError, f, None)
 
     def test_wait_for_reactor_thread(self):
         """
-        The function decorated with wait_for_reactor is run in the reactor
+        The function decorated with the wait decorator is run in the reactor
         thread.
         """
-        myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
-        calls = []
+        in_call_from_thread = []
+        decorator = self.decorator()
 
-        @c.wait_for_reactor
+        @decorator
+        def func():
+            in_call_from_thread.append(self.reactor.in_call_from_thread)
+
+        in_call_from_thread.append(self.reactor.in_call_from_thread)
+        func()
+        in_call_from_thread.append(self.reactor.in_call_from_thread)
+        self.assertEqual(in_call_from_thread, [False, True, False])
+
+    def test_arguments(self):
+        """
+        The function decorated with wait decorator gets all arguments passed
+        to the wrapper.
+        """
+        calls = []
+        decorator = self.decorator()
+
+        @decorator
         def func(a, b, c):
-            self.assertTrue(myreactor.in_call_from_thread)
             calls.append((a, b, c))
 
         func(1, 2, c=3)
         self.assertEqual(calls, [(1, 2, 3)])
-
-    def make_wrapped_function(self):
-        """
-        Return a function wrapped with wait_for_reactor that returns its first
-        argument.
-        """
-        myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
-
-        @c.wait_for_reactor
-        def passthrough(argument):
-            return argument
-        return passthrough
 
     def test_deferred_success_result(self):
         """
@@ -725,14 +740,8 @@ class WaitForReactorTests(TestCase):
         If the underlying function throws an exception, the wrapper raises
         that exception.
         """
-        myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
-
-        @c.wait_for_reactor
-        def raiser():
-            1/0
-
-        self.assertRaises(ZeroDivisionError, raiser)
+        raiser = self.make_wrapped_function()
+        self.assertRaises(ZeroDivisionError, raiser, ZeroDivisionError())
 
     def test_control_c_is_possible(self):
         """
@@ -765,7 +774,7 @@ t = threading.Thread(target=interrupt)
 t.setDaemon(True)
 t.start()
 
-@crochet.wait_for_reactor
+@crochet.%s
 def wait():
     return Deferred()
 
@@ -773,7 +782,7 @@ try:
     wait()
 except KeyboardInterrupt:
     sys.exit(23)
-"""
+""" % (self.DECORATOR_CALL,)
         kw = { 'cwd': crochet_directory }
         if platform.type.startswith('win'):
             kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -794,7 +803,7 @@ from twisted.internet import reactor
 import crochet
 crochet.setup()
 
-@crochet.wait_for_reactor
+@crochet.%s
 def run():
     reactor.callLater(0.1, reactor.stop)
     return Deferred()
@@ -803,10 +812,20 @@ try:
     er = run()
 except crochet.ReactorStopped:
     sys.exit(23)
-"""
+"""  % (self.DECORATOR_CALL,)
         process = subprocess.Popen([sys.executable, "-c", program],
                                    cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
+
+
+class WaitForReactorTests(WaitTestsMixin, TestCase):
+    """
+    Tests for the wait_for_reactor decorator.
+    """
+    DECORATOR_CALL = "wait_for_reactor"
+
+    def decorator(self):
+        return self.eventloop.wait_for_reactor
 
 
 class PublicAPITests(TestCase):
