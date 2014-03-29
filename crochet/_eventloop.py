@@ -417,7 +417,12 @@ class EventLoop(object):
                 @self.run_in_reactor
                 def run():
                     return function(*args, **kwargs)
-                return run().wait()
+                eventual_result = run()
+                try:
+                    return eventual_result.wait(timeout)
+                except TimeoutError:
+                    eventual_result.cancel()
+                    raise
             return wrapper
         return decorator
 

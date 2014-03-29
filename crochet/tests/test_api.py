@@ -837,6 +837,34 @@ class WaitForTests(WaitTestsMixin, TestCase):
     def decorator(self):
         return lambda func: self.eventloop.wait_for(timeout=5)(func)
 
+    def test_timeoutRaises(self):
+        """
+        If a function wrapped with wait_for hits the timeout, it raises
+        TimeoutError.
+        """
+        @self.eventloop.wait_for(timeout=0.5)
+        def times_out():
+            return Deferred().addErrback(lambda f: f.trap(CancelledError))
+
+        start = time.time()
+        self.assertRaises(TimeoutError, times_out)
+        self.assertTrue(abs(time.time() - start - 0.5) < 0.1)
+
+    def test_timeoutCancels(self):
+        """
+        If a function wrapped with wait_for hits the timeout, it cancels
+        the underlying Deferred.
+        """
+        result = Deferred()
+        error = []
+        result.addErrback(error.append)
+
+        @self.eventloop.wait_for(timeout=0.0)
+        def times_out():
+            return result
+        self.assertRaises(TimeoutError, times_out)
+        self.assertIsInstance(error[0].value, CancelledError)
+
 
 class PublicAPITests(TestCase):
     """
