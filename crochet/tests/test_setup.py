@@ -5,9 +5,11 @@ Tests for the initial setup.
 from __future__ import absolute_import
 
 import threading
+import warnings
 
 from twisted.trial.unittest import TestCase
 from twisted.python.log import PythonLoggingObserver
+from twisted.python import log
 from twisted.python.runtime import platform
 from twisted.python import threadable
 from twisted.internet.task import Clock
@@ -143,6 +145,20 @@ class SetupTests(TestCase):
         s.setup()
         self.addCleanup(observers[0].stop)
         self.assertIn(("after", "shutdown", observers[0].stop), reactor.events)
+
+    def test_warnings_untouched(self):
+        """
+        setup() ensure the warnings module's showwarning is unmodified,
+        overriding the change made by normal Twisted logging setup.
+        """
+        def fakeStartLoggingWithObserver(observer, setStdout=1):
+            warnings.showwarning = log.showwarning
+            self.addCleanup(observer.stop)
+        original = warnings.showwarning
+        reactor = FakeReactor()
+        loop = EventLoop(reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
+        loop.setup()
+        self.assertIs(warnings.showwarning, original)
 
     def test_start_watchdog_thread(self):
         """
