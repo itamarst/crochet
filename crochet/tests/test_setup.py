@@ -158,7 +158,7 @@ class SetupTests(TestCase):
         reactor = FakeReactor()
         loop = EventLoop(reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
         loop.setup()
-        self.assertIs(warnings.showwarning, original)
+        self.assertIdentical(warnings.showwarning, original)
 
     def test_start_watchdog_thread(self):
         """
