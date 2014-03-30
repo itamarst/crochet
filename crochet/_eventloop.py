@@ -8,6 +8,7 @@ import select
 import threading
 import weakref
 from functools import wraps
+import warnings
 
 from twisted.python import threadable
 from twisted.python.runtime import platform
@@ -335,8 +336,16 @@ class EventLoop(object):
             self._reactor.callFromThread(self._startReapingProcesses)
         if self._startLoggingWithObserver:
             observer = ThreadLogObserver(PythonLoggingObserver().emit)
-            self._reactor.callFromThread(
-                self._startLoggingWithObserver, observer, False)
+            def start():
+                # Twisted is going to override warnings.showwarning; let's
+                # make sure that has no effect:
+                from twisted.python import log
+                original = log.showwarning
+                log.showwarning = warnings.showwarning
+                self._startLoggingWithObserver(observer, False)
+                log.showwarning = original
+            self._reactor.callFromThread(start)
+
             # We only want to stop the logging thread once the reactor has
             # shut down:
             self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)

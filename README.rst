@@ -30,6 +30,12 @@ Bugs and feature requests should be filed at the project `Github page`_.
 Changelog
 ---------
 
+**1.2.0**
+
+Bug fixes:
+
+* ``warnings`` are no longer erroneously turned into Twisted log messages.
+
 **1.1.0**
 
 Bug fixes:
