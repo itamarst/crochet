@@ -7,7 +7,7 @@ from __future__ import print_function
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.names.client import lookupMailExchange
-from crochet import setup, wait_for_reactor
+from crochet import setup, wait_for
 setup()
 
 
@@ -26,7 +26,7 @@ def _mx(domain):
     return d
 
 # Blocking wrapper:
-@wait_for_reactor
+@wait_for(timeout=5)
 def mx(domain):
     """
     Return list of (priority, MX domain) tuples for a given domain.

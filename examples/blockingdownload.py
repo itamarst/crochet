@@ -8,10 +8,10 @@ from __future__ import print_function
 import sys
 
 from twisted.web.client import getPage
-from crochet import setup, wait_for_reactor
+from crochet import setup, wait_for
 setup()
 
-@wait_for_reactor
+@wait_for(timeout=30)
 def download_page(url):
     return getPage(url)
 

@@ -25,7 +25,7 @@ access to the app object, and can import code, etc.:
 import logging
 
 from flask import Flask
-from crochet import setup, wait_for_reactor
+from crochet import setup, run_in_reactor
 setup()
 
 # Web server:
@@ -36,7 +36,7 @@ def index():
     return "Welcome to my boring web server!"
 
 
-@wait_for_reactor
+@run_in_reactor
 def start_ssh_server(port, username, password, namespace):
     """
     Start an SSH server on the given port, exposing a Python prompt with the
