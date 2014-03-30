@@ -22,7 +22,7 @@ fine; if more than one library does ``crochet.setup()`` only the first one
 will do anything.
 
 
-@wait_for_reactor: Blocking Calls into Twisted
+@wait_for: Blocking Calls into Twisted
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Now that you've got the reactor running, the next stage is defining some
@@ -30,7 +30,7 @@ functions that will run inside the Twisted reactor thread. Twisted's APIs are
 not thread-safe, and so they cannot be called directly from another
 thread. Moreover, results may not be available immediately. The easiest way to
 deal with these issues is to decorate a function that calls Twisted APIs with
-``crochet.wait_for_reactor``.
+``crochet.wait_for``.
 
 * When the decorated function is called, the code will not run in the calling
   thread, but rather in the reactor thread.
@@ -39,6 +39,19 @@ deal with these issues is to decorate a function that calls Twisted APIs with
   the code throws an exception, an exception is thrown.
 * If the underlying code returns a ``Deferred``, it is handled transparently;
   its results are extracted and passed to the caller.
+* ``crochet.wait_for`` takes a ``timeout`` argument, a ``float`` indicating
+  the number of seconds to wait until a result is available. If the given
+  number of seconds pass and the underlying operation is still unfinished a
+  ``crochet.TimeoutError`` exception is raised, and the wrapped ``Deferred``
+  is canceled. If the underlying API supports cancellation this might free up
+  any unused resources, close outgoing connections etc., but cancellation is
+  not guaranteed and should not be relied on.
+
+.. note ::
+   ``wait_for`` was added to Crochet in v1.2.0. Prior releases provided a
+   similar API called ``wait_for_reactor`` which did not provide
+   timeouts. This older API still exists but is deprecated since waiting
+   indefinitely is a bad idea.
 
 To see what this means, let's return to the first example in the
 documentation:
@@ -93,10 +106,11 @@ use of ``addCallback`` since ``getPage()`` returns a ``Deferred``:
 @run_in_reactor: Asynchronous Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``run_in_reactor`` is a more sophisticated alternative to
-``wait_for_reactor``. Rather than waiting until a result is available, it
-returns a special object supporting timeouts and cancellation. Decorating a
-function that calls Twisted APIs with ``run_in_reactor`` has two consequences:
+``wait_for`` is implemented using ``run_in_reactor``, a more sophisticated and
+lower-level API. Rather than waiting until a result is available, it returns a
+special object supporting that allows multiple attempts to wait for results,
+as well as manual cancellation. Decorating a function that calls Twisted APIs
+with ``run_in_reactor`` has two consequences:
 
 * When the function is called, the code will not run in the calling thread,
   but rather in the reactor thread.
@@ -106,14 +120,16 @@ function that calls Twisted APIs with ``run_in_reactor`` has two consequences:
 
 ``EventualResult`` has the following basic methods:
 
-* ``wait(timeout=None)``: Return the result when it becomes available; if the
-  result is an exception it will be raised. If an optional timeout is given
-  (in seconds), ``wait()`` will throw ``crochet.TimeoutError`` if the timeout
-  is hit, rather than blocking indefinitely.
+* ``wait(timeout)``: Return the result when it becomes available; if the
+  result is an exception it will be raised. The timeout argument is a
+  ``float`` indicating a number of seconds; ``wait()`` will throw
+  ``crochet.TimeoutError`` if the timeout is hit.
 * ``cancel()``: Cancel the operation tied to the underlying
   ``Deferred``. Many, but not all, ``Deferred`` results returned from Twisted
-  allow the underlying operation to be canceled. In any case this should be
-  considered a best effort cancellation.
+  allow the underlying operation to be canceled. Even if implemented,
+  cancellation may not be possible for a variety of reasons, e.g. it may be
+  too late. Its main purpose to free up no longer used resources, and it
+  should not be relied on otherwise.
 
 There are also some more specialized methods:
 
