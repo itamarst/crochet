@@ -10,17 +10,16 @@ Crochet is an MIT-licensed library that makes it easier for blocking and
 threaded applications like Flask or Django to use the Twisted networking
 framework.
 
-Here's an example of a program using Crochet:
+Here's an example of a program using Crochet. Notice that you get a completely
+blocking interface to Twisted and do not need to run the Twisted reactor, the
+event loop, yourself.
 
-.. literalinclude:: ../examples/blockingdownload.py
+.. literalinclude:: ../examples/blockingdns.py
 
 Run on the command line::
 
-  $ python blockingdownload.py http://google.com
-  <!doctype html><html itemscope="itemscope" ... etc. ...
-
-Notice that you get a completely blocking interface to Twisted and do not
-need to run the Twisted reactor, the event loop, yourself.
+  $ python blockingdns.py twistedmatrix.com
+  twistedmatrix.com -> 66.35.39.66
 
 
 Table of Contents

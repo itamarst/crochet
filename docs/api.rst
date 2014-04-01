@@ -56,51 +56,28 @@ deal with these issues is to decorate a function that calls Twisted APIs with
 To see what this means, let's return to the first example in the
 documentation:
 
-.. literalinclude:: ../examples/blockingdownload.py
+.. literalinclude:: ../examples/blockingdns.py
 
-Twisted's ``getPage()`` call returns a ``Deferred``, but the code calling the
-decorated ``download_page()`` doesn't know that. As far as the caller
+Twisted's ``lookupAddress()`` call returns a ``Deferred``, but the code calling the
+decorated ``gethostbyname()`` doesn't know that. As far as the caller
 concerned is just calling a blocking function that returns a result or raises
-an exception. Run on the command line with a valid URL we get::
+an exception. Run on the command line with a valid domain we get::
 
-  $ python blockingdownload.py http://google.com
-  <!doctype html><html itemscope="itemscope" ... etc. ...
+  $ python blockingdns.py twistedmatrix.com
+  twistedmatrix.com -> 66.35.39.66
 
-If we try to call the function with an invalid URL, we get back an exception::
+If we try to call the function with an invalid domain, we get back an exception::
 
-  $ python blockingdownload.py http://notarealsite.atall
-  Traceback (most recent call last):
-    File "examples/blockingdownload.py", line 19, in <module>
-      print(download_page(sys.argv[1]))
-    File "/home/itamar/devel/python/crochet/crochet/_eventloop.py", line 300, in wrapper
-      function, *args, **kwargs)
-    File "/usr/lib/python2.7/dist-packages/twisted/internet/threads.py", line 118, in blockingCallFromThread
+  $ python blockingdns.py doesnotexist
+  Trace back (most recent call last):
+    File "examples/blockingdns.py", line 33, in <module>
+      ip = gethostbyname(name)
+    File "/home/itamar/crochet/crochet/_eventloop.py", line 434, in wrapper
+      return eventual_result.wait(timeout)
+    File "/home/itamar/crochet/crochet/_eventloop.py", line 216, in wait
       result.raiseException()
-    File "/usr/lib/python2.7/dist-packages/twisted/python/failure.py", line 370, in raiseException
-      raise self.type, self.value, self.tb
-  twisted.internet.error.DNSLookupError: DNS lookup failed: address 'notarealsite.atall' not found: [Errno -5] No address associated with hostname.
-
-For comparison, here's what the Twisted version would look like; notice the
-use of ``addCallback`` since ``getPage()`` returns a ``Deferred``:
-
-.. code-block:: python
-
-  #!/usr/bin/python
-  """
-  Download a web page in a non-blocking manner.
-  """
-
-  from __future__ import print_function
-
-  import sys
-
-  from twisted.web.client import getPage
-  from twisted.internet.task import react
-
-  def main(reactor, url):
-      return getPage(url).addCallback(print)
-
-  react(main, sys.argv[1:])
+    File "<string>", line 2, in raiseException
+  twisted.names.error.DNSNameError: <Message id=36791 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query('doesnotexist', 1, 1)] authority=[<RR name= type=SOA class=IN ttl=1694s auth=False>]>
 
 
 @run_in_reactor: Asynchronous Results
