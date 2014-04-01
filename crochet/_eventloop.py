@@ -400,8 +400,8 @@ class EventLoop(object):
 
     def wait_for_reactor(self, function):
         """
-        DEPRECATED, use wait_for
-.
+        DEPRECATED, use wait_for(timeout) instead.
+
         A decorator that ensures the wrapped function runs in the reactor thread.
 
         When the wrapped function is called, its result is returned or its
