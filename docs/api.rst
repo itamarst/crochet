@@ -85,9 +85,12 @@ If we try to call the function with an invalid domain, we get back an exception:
 
 ``wait_for`` is implemented using ``run_in_reactor``, a more sophisticated and
 lower-level API. Rather than waiting until a result is available, it returns a
-special object supporting that allows multiple attempts to wait for results,
-as well as manual cancellation. Decorating a function that calls Twisted APIs
-with ``run_in_reactor`` has two consequences:
+special object supporting multiple attempts to retrieve results, as well as
+manual cancellation. This can be useful for running tasks "in the background",
+i.e. asynchronously, as opposed to blocking and waiting for them to finish.
+
+Decorating a function that calls Twisted APIs with ``run_in_reactor`` has two
+consequences:
 
 * When the function is called, the code will not run in the calling thread,
   but rather in the reactor thread.
