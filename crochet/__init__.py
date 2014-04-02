@@ -33,17 +33,19 @@ _main = EventLoop(reactor, register, startLoggingWithObserver,
 setup = _main.setup
 no_setup = _main.no_setup
 run_in_reactor = _main.run_in_reactor
-wait_for_reactor = _main.wait_for_reactor
+wait_for = _main.wait_for
 retrieve_result = _store.retrieve
 
 # Backwards compatibility with 0.5.0:
 in_reactor = _main.in_reactor
 DeferredResult = EventualResult
 
+# Backwards compatibility with 1.1.0 and earlier:
+wait_for_reactor = _main.wait_for_reactor
 
 __all__ = ["setup", "run_in_reactor", "EventualResult", "TimeoutError",
-           "retrieve_result", "no_setup", "wait_for_reactor",
+           "retrieve_result", "no_setup", "wait_for",
            "ReactorStopped",
            # Backwards compatibility:
-           "DeferredResult", "in_reactor",
+           "DeferredResult", "in_reactor", "wait_for_reactor",
            ]

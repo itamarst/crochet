@@ -19,7 +19,7 @@ from twisted.internet.task import LoopingCall
 from twisted.web.client import getPage
 from twisted.python import log
 
-from crochet import wait_for_reactor, setup
+from crochet import wait_for, run_in_reactor, setup
 setup()
 
 
@@ -64,12 +64,14 @@ class _ExchangeRate(object):
 class ExchangeRate(object):
     """Blocking API for downloading exchange rate."""
 
-    @wait_for_reactor
     def __init__(self, name):
         self._exchange = _ExchangeRate(name)
+
+    @run_in_reactor
+    def start(self):
         self._exchange.start()
 
-    @wait_for_reactor
+    @wait_for(timeout=1)
     def latest_value(self):
         """Return the latest exchange rate value.
 
@@ -78,11 +80,7 @@ class ExchangeRate(object):
         return self._exchange.latest_value()
 
 
-# Start background download:
 EURUSD = ExchangeRate("EURUSD")
-
-
-# Flask application:
 app = Flask(__name__)
 
 @app.route('/')
@@ -96,4 +94,5 @@ def index():
 if __name__ == '__main__':
     import sys, logging
     logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+    EURUSD.start()
     app.run()

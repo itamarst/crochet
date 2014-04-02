@@ -32,6 +32,13 @@ Changelog
 
 **1.2.0**
 
+New features:
+
+* ``crochet.wait_for`` implements the timeout/cancellation pattern documented
+  in previous versions of Crochet. ``crochet.wait_for_reactor`` and
+  ``EventualResult.wait(timeout=None)`` are now deprecated, since lacking
+  timeouts they could potentially block forever.
+
 Bug fixes:
 
 * ``warnings`` are no longer erroneously turned into Twisted log messages.

@@ -7,7 +7,7 @@ import time
 import threading
 import sys
 
-from crochet import no_setup, run_in_reactor, wait_for_reactor, TimeoutError
+from crochet import no_setup, run_in_reactor, TimeoutError
 # Tell Crochet not to run the reactor:
 no_setup()
 

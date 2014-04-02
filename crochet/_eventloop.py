@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import select
 import threading
 import weakref
+import warnings
 from functools import wraps
 import warnings
 
@@ -181,6 +182,8 @@ class EventualResult(object):
         result.
         """
         if timeout is None:
+            warnings.warn("Unlimited timeouts are deprecated.",
+                          DeprecationWarning, stacklevel=3)
             # Queue.get(None) won't get interrupted by Ctrl-C...
             timeout = 2 ** 31
         self._result_set.wait(timeout)
@@ -397,18 +400,43 @@ class EventLoop(object):
 
     def wait_for_reactor(self, function):
         """
+        DEPRECATED, use wait_for(timeout) instead.
+
         A decorator that ensures the wrapped function runs in the reactor thread.
 
         When the wrapped function is called, its result is returned or its
         exception raised. Deferreds are handled transparently.
         """
-        @wraps(function)
-        def wrapper(*args, **kwargs):
-            @self.run_in_reactor
-            def run():
-                return function(*args, **kwargs)
-            return run().wait()
-        return wrapper
+        warnings.warn("@wait_for_reactor is deprecated, use @wait_for instead",
+                      DeprecationWarning, stacklevel=2)
+        # This will timeout, in theory. In practice the process will be dead
+        # long before that.
+        return self.wait_for(2 ** 31)(function)
+
+    def wait_for(self, timeout):
+        """
+        A decorator factory that ensures the wrapped function runs in the
+        reactor thread.
+
+        When the wrapped function is called, its result is returned or its
+        exception raised. Deferreds are handled transparently. Calls will
+        timeout after the given number of seconds (a float), raising a
+        crochet.TimeoutError, and cancelling the Deferred being waited on.
+        """
+        def decorator(function):
+            @wraps(function)
+            def wrapper(*args, **kwargs):
+                @self.run_in_reactor
+                def run():
+                    return function(*args, **kwargs)
+                eventual_result = run()
+                try:
+                    return eventual_result.wait(timeout)
+                except TimeoutError:
+                    eventual_result.cancel()
+                    raise
+            return wrapper
+        return decorator
 
     def in_reactor(self, function):
         """
@@ -421,7 +449,6 @@ class EventLoop(object):
 
         When the wrapped function is called, an EventualResult is returned.
         """
-        import warnings
         warnings.warn("@in_reactor is deprecated, use @run_in_reactor",
                       DeprecationWarning, stacklevel=2)
         @self.run_in_reactor
