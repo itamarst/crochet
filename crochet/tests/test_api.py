@@ -10,6 +10,8 @@ import time
 import gc
 import sys
 import weakref
+import tempfile
+import os
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
@@ -454,6 +456,34 @@ else:
         process = subprocess.Popen([sys.executable, "-c", program],
                                    cwd=crochet_directory,)
         self.assertEqual(process.wait(), 23)
+
+    def test_noWaitingDuringImport(self):
+        """
+        EventualResult.wait() raises an exception if called while a module is
+        being imported.
+
+        This prevents the imports from taking a long time, preventing other
+        imports from running in other threads. It also prevents deadlocks,
+        which can happen if the code being waited on also tries to import
+        something.
+        """
+        if sys.version_info[0] > 2:
+            from unittest import SkipTest
+            raise SkipTest("This test is too fragile (and insufficient) on "
+                           "Python 3 - see "
+                           "https://github.com/itamarst/crochet/issues/43")
+        directory = tempfile.mktemp()
+        os.mkdir(directory)
+        sys.path.append(directory)
+        self.addCleanup(sys.path.remove, directory)
+        with open(os.path.join(directory, "shouldbeunimportable.py"), "w") as f:
+            f.write("""\
+from crochet import EventualResult
+from twisted.internet.defer import Deferred
+
+EventualResult(Deferred()).wait(1.0)
+""")
+        self.assertRaises(RuntimeError, __import__, "shouldbeunimportable")
 
 
 class InReactorTests(TestCase):

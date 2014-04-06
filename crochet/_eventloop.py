@@ -10,6 +10,7 @@ import weakref
 import warnings
 from functools import wraps
 import warnings
+import imp
 
 from twisted.python import threadable
 from twisted.python.runtime import platform
@@ -210,6 +211,14 @@ class EventualResult(object):
         if threadable.isInIOThread():
             raise RuntimeError(
                 "EventualResult.wait() must not be run in the reactor thread.")
+
+        if imp.lock_held():
+            # If EventualResult.wait() is run during module import, if the
+            # Twisted code that is being run also imports something the result
+            # will be a deadlock. Even if that is not an issue it would
+            # prevent importing in other threads until the call returns.
+            raise RuntimeError(
+                "EventualResult.wait() must not be run at module import time.")
 
         result = self._result(timeout)
         if isinstance(result, Failure):
