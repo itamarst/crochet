@@ -39,6 +39,12 @@ New features:
   ``EventualResult.wait(timeout=None)`` are now deprecated, since lacking
   timeouts they could potentially block forever.
 
+API changes:
+
+* It is no longer possible to call ``EventualResult.wait()`` (or functions
+  wrapped with ``wait_for``) at import time, since this can lead to deadlocks
+  or prevent other threads from importing.
+
 Bug fixes:
 
 * ``warnings`` are no longer erroneously turned into Twisted log messages.
