@@ -43,7 +43,8 @@ API changes:
 
 * It is no longer possible to call ``EventualResult.wait()`` (or functions
   wrapped with ``wait_for``) at import time, since this can lead to deadlocks
-  or prevent other threads from importing.
+  or prevent other threads from importing. Thanks to Tom Prince for the bug
+  report.
 
 Bug fixes:
 
