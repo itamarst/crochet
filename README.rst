@@ -50,6 +50,10 @@ Bug fixes:
 
 * ``warnings`` are no longer erroneously turned into Twisted log messages.
 
+Documentation:
+
+* Better example of using Crochet from a normal Twisted application.
+
 **1.1.0**
 
 Bug fixes:
