@@ -1,8 +1,8 @@
 What's New
-----------
+==========
 
-**1.2.0**
-
+1.2.0
+^^^^^
 New features:
 
 * ``crochet.wait_for`` implements the timeout/cancellation pattern documented
@@ -26,10 +26,11 @@ Bug fixes:
 
 Documentation:
 
+* Improved motivation, added contact info and news to the documentation.
 * Better example of using Crochet from a normal Twisted application.
 
-**1.1.0**
-
+1.1.0
+^^^^^
 Bug fixes:
 
 * ``EventualResult.wait()`` can now be used safely from multiple threads,
@@ -46,8 +47,8 @@ Documentation:
 
 * ``EventualResult.original_failure`` is now documented.
 
-**1.0.0**
-
+1.0.0
+^^^^^
 Documentation:
 
 * Added section on use cases and alternatives. Thanks to Tobias Oberstein for
@@ -62,8 +63,8 @@ Bug fixes:
 * Blocking calls are interrupted earlier in the shutdown process, to reduce
   scope for deadlocks. Thanks to rmorehead for bug report.
 
-**0.9.0**
-
+0.9.0
+^^^^^
 New features:
 
 * Expanded and much improved documentation, including a new section with
@@ -86,19 +87,19 @@ Bug fixes:
 
 .. _Twisted ticket 6378: http://tm.tl/6738
 
-**0.8.1**
-
+0.8.1
+^^^^^
 * ``EventualResult.wait()`` now raises error if called in the reactor thread,
   thanks to David Buchmann.
 * Unittests are now included in the release tarball.
 * Allow Ctrl-C to interrupt ``EventualResult.wait(timeout=None)``.
 
-**0.7.0**
-
+0.7.0
+^^^^^
 * Improved documentation.
 
-**0.6.0**
-
+0.6.0
+^^^^^
 * Renamed ``DeferredResult`` to ``EventualResult``, to reduce confusion with
   Twisted's ``Deferred`` class. The old name still works, but is deprecated.
 * Deprecated ``@in_reactor``, replaced with ``@run_in_reactor`` which doesn't
@@ -108,6 +109,6 @@ Bug fixes:
 * Added more examples.
 * ``setup.py sdist`` should work now.
 
-**0.5.0**
-
+0.5.0
+^^^^^
 * Initial release.
