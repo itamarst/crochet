@@ -50,7 +50,7 @@ class ResultRegistryTests(TestCase):
         ReactorStopped.
         """
         registry = ResultRegistry(FakeReactor())
-        er = EventualResult(None)
+        er = EventualResult(None, None)
         registry.register(er)
         registry.stop()
         self.assertRaises(ReactorStopped, er.wait, timeout=0)
@@ -61,7 +61,7 @@ class ResultRegistryTests(TestCase):
         raise ReactorStopped.
         """
         registry = ResultRegistry(FakeReactor())
-        er = EventualResult(None)
+        er = EventualResult(None, None)
         registry.stop()
         self.assertRaises(ReactorStopped, registry.register, er)
 
@@ -71,7 +71,7 @@ class ResultRegistryTests(TestCase):
         which already have a result.
         """
         registry = ResultRegistry(FakeReactor())
-        er = EventualResult(succeed(123))
+        er = EventualResult(succeed(123), None)
         registry.register(er)
         registry.stop()
         self.assertEqual(er.wait(), 123)
@@ -84,7 +84,7 @@ class ResultRegistryTests(TestCase):
         it from being garbage collected.
         """
         registry = ResultRegistry(FakeReactor())
-        er = EventualResult(None)
+        er = EventualResult(None, None)
         registry.register(er)
         ref = weakref.ref(er)
         del er
@@ -112,7 +112,7 @@ class EventualResultTests(TestCase):
         """
         wait() returns the value the Deferred fired with.
         """
-        dr = EventualResult(succeed(123))
+        dr = EventualResult(succeed(123), None)
         self.assertEqual(dr.wait(), 123)
 
     def test_later_success_result(self):
@@ -125,14 +125,14 @@ class EventualResultTests(TestCase):
             import time; time.sleep(0.01)
             d.callback(345)
         threading.Thread(target=fireSoon).start()
-        dr = EventualResult(d)
+        dr = EventualResult(d, None)
         self.assertEqual(dr.wait(), 345)
 
     def test_success_result_twice(self):
         """
         A second call to wait() returns same value as the first call.
         """
-        dr = EventualResult(succeed(123))
+        dr = EventualResult(succeed(123), None)
         self.assertEqual(dr.wait(), 123)
         self.assertEqual(dr.wait(), 123)
 
@@ -140,7 +140,7 @@ class EventualResultTests(TestCase):
         """
         wait() raises the exception the Deferred fired with.
         """
-        dr = EventualResult(fail(RuntimeError()))
+        dr = EventualResult(fail(RuntimeError()), None)
         self.assertRaises(RuntimeError, dr.wait)
 
     def test_later_failure_result(self):
@@ -153,14 +153,14 @@ class EventualResultTests(TestCase):
             time.sleep(0.01)
             d.errback(RuntimeError())
         threading.Thread(target=fireSoon).start()
-        dr = EventualResult(d)
+        dr = EventualResult(d, None)
         self.assertRaises(RuntimeError, dr.wait)
 
     def test_failure_result_twice(self):
         """
         A second call to wait() raises same value as the first call.
         """
-        dr = EventualResult(fail(ZeroDivisionError()))
+        dr = EventualResult(fail(ZeroDivisionError()), None)
         self.assertRaises(ZeroDivisionError, dr.wait)
         self.assertRaises(ZeroDivisionError, dr.wait)
 
@@ -169,7 +169,7 @@ class EventualResultTests(TestCase):
         If no result is available, wait(timeout) will throw a TimeoutError.
         """
         start = time.time()
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.03)
         self.assertTrue(abs(time.time() - start - 0.03) < 0.005)
 
@@ -178,7 +178,7 @@ class EventualResultTests(TestCase):
         If no result is available, a second call to wait(timeout) will also
         result in a TimeoutError exception.
         """
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.01)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.01)
 
@@ -188,7 +188,7 @@ class EventualResultTests(TestCase):
         wait() will return it.
         """
         d = Deferred()
-        dr = EventualResult(d)
+        dr = EventualResult(d, None)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.01)
         d.callback(u"value")
         self.assertEqual(dr.wait(), u"value")
@@ -200,7 +200,7 @@ class EventualResultTests(TestCase):
         """
         self.patch(threadable, "isInIOThread", lambda: True)
         d = Deferred()
-        dr = EventualResult(d)
+        dr = EventualResult(d, None)
         self.assertRaises(RuntimeError, dr.wait, 0)
 
     def test_cancel(self):
@@ -224,7 +224,7 @@ class EventualResultTests(TestCase):
         """
         EventualResult.stash() stores the object in the global ResultStore.
         """
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         uid = dr.stash()
         self.assertIdentical(dr, _store.retrieve(uid))
 
@@ -237,21 +237,21 @@ class EventualResultTests(TestCase):
             1/0
         except:
             f = Failure()
-        dr = EventualResult(fail(f))
+        dr = EventualResult(fail(f), None)
         self.assertIdentical(dr.original_failure(), f)
 
     def test_original_failure_no_result(self):
         """
         If there is no result yet, original_failure() returns None.
         """
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         self.assertIdentical(dr.original_failure(), None)
 
     def test_original_failure_not_error(self):
         """
         If the result is not an error, original_failure() returns None.
         """
-        dr = EventualResult(succeed(3))
+        dr = EventualResult(succeed(3), None)
         self.assertIdentical(dr.original_failure(), None)
 
     def test_error_logged_no_wait(self):
@@ -259,7 +259,7 @@ class EventualResultTests(TestCase):
         If the result is an error and wait() was never called, the error will
         be logged once the EventualResult is garbage-collected.
         """
-        dr = EventualResult(fail(ZeroDivisionError()))
+        dr = EventualResult(fail(ZeroDivisionError()), None)
         del dr
         gc.collect()
         excs = self.flushLoggedErrors(ZeroDivisionError)
@@ -271,7 +271,7 @@ class EventualResultTests(TestCase):
         error will be logged once the EventualResult is garbage-collected.
         """
         d = Deferred()
-        dr = EventualResult(d)
+        dr = EventualResult(d, None)
         try:
             dr.wait(0)
         except TimeoutError:
@@ -290,7 +290,7 @@ class EventualResultTests(TestCase):
         EventualResult are lost, the error is still logged.
         """
         d = Deferred()
-        dr = EventualResult(d)
+        dr = EventualResult(d, None)
         del dr
         d.errback(ZeroDivisionError())
         gc.collect()
@@ -329,7 +329,7 @@ t.setDaemon(True)
 t.start()
 
 d = Deferred()
-e = crochet.EventualResult(d)
+e = crochet.EventualResult(d, None)
 
 try:
     # Queue.get() has special non-interruptible behavior if not given timeout,
@@ -339,7 +339,7 @@ except KeyboardInterrupt:
     sys.exit(23)
 """
         kw = { 'cwd': crochet_directory }
-        # on Windows the only way to interrupt a subprocess reliably is to 
+        # on Windows the only way to interrupt a subprocess reliably is to
         # create a new process group:
         # http://docs.python.org/2/library/subprocess.html#subprocess.CREATE_NEW_PROCESS_GROUP
         if platform.type.startswith('win'):
@@ -353,7 +353,7 @@ except KeyboardInterrupt:
         EventualResult._connect_deferred can be called later to register a
         Deferred as the one it is wrapping.
         """
-        er = EventualResult(None)
+        er = EventualResult(None, None)
         self.assertRaises(TimeoutError, er.wait, 0)
         d = Deferred()
         er._connect_deferred(d)
@@ -481,7 +481,7 @@ else:
 from crochet import EventualResult
 from twisted.internet.defer import Deferred
 
-EventualResult(Deferred()).wait(1.0)
+EventualResult(Deferred(), None).wait(1.0)
 """)
         self.assertRaises(RuntimeError, __import__, "shouldbeunimportable")
 
@@ -510,6 +510,8 @@ class InReactorTests(TestCase):
         """
         myreactor = FakeReactor()
         c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+
         calls = []
 
         @c.in_reactor
@@ -537,6 +539,7 @@ class InReactorTests(TestCase):
 
         myreactor = FakeReactor()
         c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
         c.run_in_reactor = fake_run_in_reactor
 
 
@@ -573,6 +576,7 @@ class RunInReactorTests(TestCase):
         """
         myreactor = FakeReactor()
         c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
         calls = []
 
         @c.run_in_reactor
@@ -590,6 +594,7 @@ class RunInReactorTests(TestCase):
         """
         myreactor = FakeReactor()
         c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
 
         @c.run_in_reactor
         def passthrough(argument):
@@ -634,6 +639,7 @@ class RunInReactorTests(TestCase):
         """
         myreactor = FakeReactor()
         c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
 
         @c.run_in_reactor
         def raiser():
@@ -649,6 +655,7 @@ class RunInReactorTests(TestCase):
         """
         myreactor = FakeReactor()
         c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
 
         @c.run_in_reactor
         def run():
@@ -665,6 +672,7 @@ class WaitTestsMixin(object):
     def setUp(self):
         self.reactor = FakeReactor()
         self.eventloop = EventLoop(lambda: self.reactor, lambda f, g: None)
+        self.eventloop.no_setup()
 
     def decorator(self):
         """
@@ -914,7 +922,6 @@ class PublicAPITests(TestCase):
         An EventLoop object configured with the real reactor and
         _shutdown.register is exposed via its public methods.
         """
-        from twisted.internet import reactor
         from twisted.python.log import startLoggingWithObserver
         from crochet import _shutdown
         self.assertIsInstance(_main, EventLoop)
@@ -924,16 +931,24 @@ class PublicAPITests(TestCase):
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
         self.assertEqual(_main.wait_for_reactor, wait_for_reactor)
         self.assertEqual(_main.wait_for, wait_for)
-        self.assertIdentical(_main._reactor, reactor)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
-        self.assertIdentical(_main._startLoggingWithObserver, startLoggingWithObserver)
+        self.assertIdentical(_main._startLoggingWithObserver,
+                             startLoggingWithObserver)
         self.assertIdentical(_main._watchdog_thread, _shutdown._watchdog)
+
+    def test_eventloop_api_reactor(self):
+        """
+        The publicly exposed EventLoop will, when setup, use the global reactor.
+        """
+        from twisted.internet import reactor
+        _main.no_setup()
+        self.assertIdentical(_main._reactor, reactor)
 
     def test_retrieve_result(self):
         """
         retrieve_result() calls retrieve() on the global ResultStore.
         """
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         uid = dr.stash()
         self.assertIdentical(dr, retrieve_result(uid))
 

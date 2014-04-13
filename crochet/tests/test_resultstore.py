@@ -20,7 +20,7 @@ class ResultStoreTests(TestCase):
         retrieved using the id returned from store().
         """
         store = ResultStore()
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         uid = store.store(dr)
         self.assertIdentical(store.retrieve(uid), dr)
 
@@ -29,7 +29,7 @@ class ResultStoreTests(TestCase):
         Once a result is retrieved, it can no longer be retrieved again.
         """
         store = ResultStore()
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         uid = store.store(dr)
         store.retrieve(uid)
         self.assertRaises(KeyError, store.retrieve, uid)
@@ -47,11 +47,11 @@ class ResultStoreTests(TestCase):
         Each store() operation returns a larger number, ensuring uniqueness.
         """
         store = ResultStore()
-        dr = EventualResult(Deferred())
+        dr = EventualResult(Deferred(), None)
         previous = store.store(dr)
         for i in range(100):
             store.retrieve(previous)
-            dr = EventualResult(Deferred())
+            dr = EventualResult(Deferred(), None)
             uid = store.store(dr)
             self.assertTrue(uid > previous)
             previous = uid
@@ -62,10 +62,10 @@ class ResultStoreTests(TestCase):
         shutdown.
         """
         store = ResultStore()
-        store.store(EventualResult(Deferred()))
-        store.store(EventualResult(fail(ZeroDivisionError())))
-        store.store(EventualResult(succeed(1)))
-        store.store(EventualResult(fail(RuntimeError())))
+        store.store(EventualResult(Deferred(), None))
+        store.store(EventualResult(fail(ZeroDivisionError()), None))
+        store.store(EventualResult(succeed(1), None))
+        store.store(EventualResult(fail(RuntimeError()), None))
         store.log_errors()
         excs = self.flushLoggedErrors(ZeroDivisionError)
         self.assertEqual(len(excs), 1)

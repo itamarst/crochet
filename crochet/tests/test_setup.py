@@ -6,6 +6,8 @@ from __future__ import absolute_import
 
 import threading
 import warnings
+import subprocess
+import sys
 
 from twisted.trial.unittest import TestCase
 from twisted.python.log import PythonLoggingObserver
@@ -15,6 +17,7 @@ from twisted.python import threadable
 from twisted.internet.task import Clock
 
 from .._eventloop import EventLoop, ThreadLogObserver, _store
+from ..tests import crochet_directory
 
 
 class FakeReactor(Clock):
@@ -309,3 +312,29 @@ class ThreadLogObserverTest(TestCase):
                       # Either reactor was never run, or run in thread running
                       # the tests:
                       (None, threading.current_thread().ident))
+
+
+
+class ReactorImportTests(TestCase):
+    """
+    Tests for when the reactor gets imported.
+
+    The reactor should only be imported as part of setup()/no_setup(),
+    rather than as side-effect of Crochet import, since daemonization
+    doesn't work if reactor is imported
+    (https://twistedmatrix.com/trac/ticket/7105).
+    """
+    def test_crochet_import_no_reactor(self):
+        """
+        Importing crochet should not import the reactor.
+        """
+        program = """\
+import sys
+import crochet
+
+if "twisted.internet.reactor" not in sys.modules:
+    sys.exit(23)
+"""
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory)
+        self.assertEqual(process.wait(), 23)

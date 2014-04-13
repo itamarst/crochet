@@ -17,7 +17,6 @@ from twisted.python.runtime import platform
 from twisted.python.failure import Failure
 from twisted.python.log import PythonLoggingObserver, err
 from twisted.internet.defer import maybeDeferred
-from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
 from ._util import synchronized
@@ -108,7 +107,7 @@ class EventualResult(object):
     decorated with @run_in_reactor.
     """
 
-    def __init__(self, deferred, _reactor=reactor):
+    def __init__(self, deferred, _reactor):
         """
         The deferred parameter should be a Deferred or None indicating
         _connect_deferred will be called separately later.
@@ -312,14 +311,13 @@ class EventLoop(object):
         reapAllProcesses: twisted.internet.process.reapAllProcesses or
             lookalike.
         """
-        self._reactor = reactorFactory()
+        self._reactorFactory = reactorFactory
         self._atexit_register = atexit_register
         self._startLoggingWithObserver = startLoggingWithObserver
         self._started = False
         self._lock = threading.Lock()
         self._watchdog_thread = watchdog_thread
         self._reapAllProcesses = reapAllProcesses
-        self._registry = ResultRegistry(self._reactor)
 
     def _startReapingProcesses(self):
         """
@@ -334,6 +332,8 @@ class EventLoop(object):
         The minimal amount of setup done by both setup() and no_setup().
         """
         self._started = True
+        self._reactor = self._reactorFactory()
+        self._registry = ResultRegistry(self._reactor)
         # We want to unblock EventualResult regardless of how the reactor is
         # run, so we always register this:
         self._reactor.addSystemEventTrigger(
