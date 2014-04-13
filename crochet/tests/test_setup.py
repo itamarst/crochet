@@ -284,9 +284,9 @@ class ThreadLogObserverTest(TestCase):
         ThreadLogObserver.emit runs the wrapped observer's in its thread, with
         the given message.
         """
-        log = []
+        messages = []
         def observer(msg):
-            log.append((threading.current_thread().ident, msg))
+            messages.append((threading.current_thread().ident, msg))
 
         threadLog = ThreadLogObserver(observer)
         ident = threadLog._thread.ident
@@ -297,7 +297,7 @@ class ThreadLogObserverTest(TestCase):
         threadLog.stop()
         # Wait for writing to finish:
         threadLog._thread.join()
-        self.assertEqual(log, [(ident, msg1), (ident, msg2)])
+        self.assertEqual(messages, [(ident, msg1), (ident, msg2)])
 
 
     def test_ioThreadUnchanged(self):

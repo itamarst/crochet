@@ -47,7 +47,7 @@ wait_for_reactor = _main.wait_for_reactor
 
 __all__ = ["setup", "run_in_reactor", "EventualResult", "TimeoutError",
            "retrieve_result", "no_setup", "wait_for",
-           "ReactorStopped",
+           "ReactorStopped", "__version__",
            # Backwards compatibility:
            "DeferredResult", "in_reactor", "wait_for_reactor",
            ]

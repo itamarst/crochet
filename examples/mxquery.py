@@ -5,7 +5,6 @@ A command-line application that uses Twisted to do an MX DNS query.
 
 from __future__ import print_function
 
-from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.names.client import lookupMailExchange
 from crochet import setup, wait_for
 setup()
