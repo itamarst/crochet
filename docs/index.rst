@@ -29,5 +29,6 @@ Table of Contents
    :maxdepth: 2
 
    introduction
+   news
    api
    using
