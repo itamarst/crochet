@@ -49,6 +49,9 @@ API changes:
 Bug fixes:
 
 * ``warnings`` are no longer erroneously turned into Twisted log messages.
+* The reactor is now only imported when ``crochet.setup()`` or
+  ``crochet.no_setup()`` are called, allowing daemonization if only ``crochet``
+  is imported (http://tm.tl/7105). Thanks to Daniel Nephin for the bug report.
 
 Documentation:
 

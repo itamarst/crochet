@@ -6,6 +6,8 @@ from __future__ import absolute_import
 
 import threading
 import warnings
+import subprocess
+import sys
 
 from twisted.trial.unittest import TestCase
 from twisted.python.log import PythonLoggingObserver
@@ -15,6 +17,7 @@ from twisted.python import threadable
 from twisted.internet.task import Clock
 
 from .._eventloop import EventLoop, ThreadLogObserver, _store
+from ..tests import crochet_directory
 
 
 class FakeReactor(Clock):
@@ -66,7 +69,7 @@ class SetupTests(TestCase):
         With it first call, setup() runs the reactor in a thread.
         """
         reactor = FakeReactor()
-        EventLoop(reactor, lambda f, *g: None).setup()
+        EventLoop(lambda: reactor, lambda f, *g: None).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
         self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
@@ -77,7 +80,7 @@ class SetupTests(TestCase):
         The second call to setup() does nothing.
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         s.setup()
         reactor.started.wait(5)
@@ -90,7 +93,7 @@ class SetupTests(TestCase):
         """
         atexit = []
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *args: atexit.append((f, args)))
+        s = EventLoop(lambda: reactor, lambda f, *args: atexit.append((f, args)))
         s.setup()
         self.assertEqual(len(atexit), 2)
         self.assertFalse(reactor.stopping)
@@ -129,7 +132,8 @@ class SetupTests(TestCase):
             logging.append(observer)
 
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
+        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+                         fakeStartLoggingWithObserver)
         loop.setup()
         self.assertTrue(logging)
         logging[0].stop()
@@ -140,7 +144,7 @@ class SetupTests(TestCase):
         """
         observers = []
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *arg: None,
+        s = EventLoop(lambda: reactor, lambda f, *arg: None,
                       lambda observer, setStdout=1: observers.append(observer))
         s.setup()
         self.addCleanup(observers[0].stop)
@@ -156,7 +160,8 @@ class SetupTests(TestCase):
             self.addCleanup(observer.stop)
         original = warnings.showwarning
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
+        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+                         fakeStartLoggingWithObserver)
         loop.setup()
         self.assertIdentical(warnings.showwarning, original)
 
@@ -166,7 +171,8 @@ class SetupTests(TestCase):
         """
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda *args: None, watchdog_thread=thread)
+        loop = EventLoop(lambda: reactor, lambda *args: None,
+                         watchdog_thread=thread)
         loop.setup()
         self.assertTrue(thread.started)
 
@@ -179,7 +185,7 @@ class SetupTests(TestCase):
         atexit = []
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda f, *arg: atexit.append(f),
+        loop = EventLoop(lambda: reactor, lambda f, *arg: atexit.append(f),
                          lambda observer, *a, **kw: observers.append(observer),
                          watchdog_thread=thread)
 
@@ -195,7 +201,7 @@ class SetupTests(TestCase):
         If called after setup(), no_setup() throws an exception.
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertRaises(RuntimeError, s.no_setup)
 
@@ -205,7 +211,7 @@ class SetupTests(TestCase):
         setup().
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertEqual(reactor.events,
                          [("before", "shutdown", s._registry.stop)])
@@ -217,7 +223,7 @@ class SetupTests(TestCase):
         setup().
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.no_setup()
         self.assertEqual(reactor.events,
                          [("before", "shutdown", s._registry.stop)])
@@ -234,7 +240,7 @@ class ProcessSetupTests(TestCase):
         """
         reactor = FakeReactor()
         reaps = []
-        s = EventLoop(reactor, lambda f, *g: None,
+        s = EventLoop(lambda: reactor, lambda f, *g: None,
                       reapAllProcesses=lambda: reaps.append(1))
         s.setup()
         reactor.advance(0.1)
@@ -251,7 +257,7 @@ class ProcessSetupTests(TestCase):
         On POSIX systems, setup() does not install a LoopingCall.
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertFalse(reactor.getDelayedCalls())
 
@@ -306,3 +312,29 @@ class ThreadLogObserverTest(TestCase):
                       # Either reactor was never run, or run in thread running
                       # the tests:
                       (None, threading.current_thread().ident))
+
+
+
+class ReactorImportTests(TestCase):
+    """
+    Tests for when the reactor gets imported.
+
+    The reactor should only be imported as part of setup()/no_setup(),
+    rather than as side-effect of Crochet import, since daemonization
+    doesn't work if reactor is imported
+    (https://twistedmatrix.com/trac/ticket/7105).
+    """
+    def test_crochet_import_no_reactor(self):
+        """
+        Importing crochet should not import the reactor.
+        """
+        program = """\
+import sys
+import crochet
+
+if "twisted.internet.reactor" not in sys.modules:
+    sys.exit(23)
+"""
+        process = subprocess.Popen([sys.executable, "-c", program],
+                                   cwd=crochet_directory)
+        self.assertEqual(process.wait(), 23)

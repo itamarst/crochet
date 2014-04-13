@@ -6,7 +6,6 @@ from __future__ import absolute_import
 
 import sys
 
-from twisted.internet import reactor
 from twisted.python.log import startLoggingWithObserver
 from twisted.python.runtime import platform
 if platform.type == "posix":
@@ -28,7 +27,10 @@ from ._eventloop import (EventualResult, TimeoutError, EventLoop, _store,
                          ReactorStopped)
 from ._version import __version__
 
-_main = EventLoop(reactor, register, startLoggingWithObserver,
+def _importReactor():
+    from twisted.internet import reactor
+    return reactor
+_main = EventLoop(_importReactor, register, startLoggingWithObserver,
                   _watchdog, reapAllProcesses)
 setup = _main.setup
 no_setup = _main.no_setup
