@@ -496,7 +496,7 @@ class InReactorTests(TestCase):
         The function decorated with in_reactor has the same name as the
         original function.
         """
-        c = EventLoop(FakeReactor(), lambda f, g: None)
+        c = EventLoop(lambda: FakeReactor(), lambda f, g: None)
 
         @c.in_reactor
         def some_name(reactor):
@@ -509,7 +509,7 @@ class InReactorTests(TestCase):
         thread, and takes the reactor as its first argument.
         """
         myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
         calls = []
 
         @c.in_reactor
@@ -536,7 +536,7 @@ class InReactorTests(TestCase):
             return wrapper
 
         myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
         c.run_in_reactor = fake_run_in_reactor
 
 
@@ -559,7 +559,7 @@ class RunInReactorTests(TestCase):
         The function decorated with run_in_reactor has the same name as the
         original function.
         """
-        c = EventLoop(FakeReactor(), lambda f, g: None)
+        c = EventLoop(lambda: FakeReactor(), lambda f, g: None)
 
         @c.run_in_reactor
         def some_name():
@@ -572,7 +572,7 @@ class RunInReactorTests(TestCase):
         thread.
         """
         myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
         calls = []
 
         @c.run_in_reactor
@@ -589,7 +589,7 @@ class RunInReactorTests(TestCase):
         argument.
         """
         myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
 
         @c.run_in_reactor
         def passthrough(argument):
@@ -633,7 +633,7 @@ class RunInReactorTests(TestCase):
         EventualResult hooked up to a Deferred wrapping the exception.
         """
         myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
 
         @c.run_in_reactor
         def raiser():
@@ -648,7 +648,7 @@ class RunInReactorTests(TestCase):
         @run_in_reactor registers the EventualResult in the ResultRegistry.
         """
         myreactor = FakeReactor()
-        c = EventLoop(myreactor, lambda f, g: None)
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
 
         @c.run_in_reactor
         def run():
@@ -664,7 +664,7 @@ class WaitTestsMixin(object):
     """
     def setUp(self):
         self.reactor = FakeReactor()
-        self.eventloop = EventLoop(self.reactor, lambda f, g: None)
+        self.eventloop = EventLoop(lambda: self.reactor, lambda f, g: None)
 
     def decorator(self):
         """
@@ -905,7 +905,7 @@ class PublicAPITests(TestCase):
         Creating an EventLoop object, as is done in crochet.__init__, does not
         call any methods on the objects it is created with.
         """
-        c = EventLoop(None, lambda f, g: 1/0, lambda *args: 1/0,
+        c = EventLoop(lambda: None, lambda f, g: 1/0, lambda *args: 1/0,
                       watchdog_thread=object(), reapAllProcesses=lambda: 1/0)
         del c
 

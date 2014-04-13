@@ -28,7 +28,7 @@ from ._eventloop import (EventualResult, TimeoutError, EventLoop, _store,
                          ReactorStopped)
 from ._version import __version__
 
-_main = EventLoop(reactor, register, startLoggingWithObserver,
+_main = EventLoop(lambda: reactor, register, startLoggingWithObserver,
                   _watchdog, reapAllProcesses)
 setup = _main.setup
 no_setup = _main.no_setup

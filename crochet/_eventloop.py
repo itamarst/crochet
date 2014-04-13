@@ -9,7 +9,7 @@ import threading
 import weakref
 import warnings
 from functools import wraps
-import warnings
+
 import imp
 
 from twisted.python import threadable
@@ -299,11 +299,20 @@ class EventLoop(object):
     """
     Initialization infrastructure for running a reactor in a thread.
     """
-    def __init__(self, reactor, atexit_register,
+    def __init__(self, reactorFactory, atexit_register,
                  startLoggingWithObserver=None,
                  watchdog_thread=None,
                  reapAllProcesses=None):
-        self._reactor = reactor
+        """
+        reactorFactory: Zero-argument callable that returns a reactor.
+        atexit_register: atexit.register, or look-alike.
+        startLoggingWithObserver: Either None, or
+            twisted.python.log.startLoggingWithObserver or lookalike.
+        watchdog_thread: crochet._shutdown.Watchdog instance, or None.
+        reapAllProcesses: twisted.internet.process.reapAllProcesses or
+            lookalike.
+        """
+        self._reactor = reactorFactory()
         self._atexit_register = atexit_register
         self._startLoggingWithObserver = startLoggingWithObserver
         self._started = False
@@ -360,7 +369,8 @@ class EventLoop(object):
 
             # We only want to stop the logging thread once the reactor has
             # shut down:
-            self._reactor.addSystemEventTrigger("after", "shutdown", observer.stop)
+            self._reactor.addSystemEventTrigger("after", "shutdown",
+                                                observer.stop)
         t = threading.Thread(
             target=lambda: self._reactor.run(installSignalHandlers=False),
             name="CrochetReactor")

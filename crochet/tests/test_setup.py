@@ -66,7 +66,7 @@ class SetupTests(TestCase):
         With it first call, setup() runs the reactor in a thread.
         """
         reactor = FakeReactor()
-        EventLoop(reactor, lambda f, *g: None).setup()
+        EventLoop(lambda: reactor, lambda f, *g: None).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
         self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
@@ -77,7 +77,7 @@ class SetupTests(TestCase):
         The second call to setup() does nothing.
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         s.setup()
         reactor.started.wait(5)
@@ -90,7 +90,7 @@ class SetupTests(TestCase):
         """
         atexit = []
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *args: atexit.append((f, args)))
+        s = EventLoop(lambda: reactor, lambda f, *args: atexit.append((f, args)))
         s.setup()
         self.assertEqual(len(atexit), 2)
         self.assertFalse(reactor.stopping)
@@ -129,7 +129,8 @@ class SetupTests(TestCase):
             logging.append(observer)
 
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
+        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+                         fakeStartLoggingWithObserver)
         loop.setup()
         self.assertTrue(logging)
         logging[0].stop()
@@ -140,7 +141,7 @@ class SetupTests(TestCase):
         """
         observers = []
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *arg: None,
+        s = EventLoop(lambda: reactor, lambda f, *arg: None,
                       lambda observer, setStdout=1: observers.append(observer))
         s.setup()
         self.addCleanup(observers[0].stop)
@@ -156,7 +157,8 @@ class SetupTests(TestCase):
             self.addCleanup(observer.stop)
         original = warnings.showwarning
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
+        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+                         fakeStartLoggingWithObserver)
         loop.setup()
         self.assertIdentical(warnings.showwarning, original)
 
@@ -166,7 +168,8 @@ class SetupTests(TestCase):
         """
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda *args: None, watchdog_thread=thread)
+        loop = EventLoop(lambda: reactor, lambda *args: None,
+                         watchdog_thread=thread)
         loop.setup()
         self.assertTrue(thread.started)
 
@@ -179,7 +182,7 @@ class SetupTests(TestCase):
         atexit = []
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(reactor, lambda f, *arg: atexit.append(f),
+        loop = EventLoop(lambda: reactor, lambda f, *arg: atexit.append(f),
                          lambda observer, *a, **kw: observers.append(observer),
                          watchdog_thread=thread)
 
@@ -195,7 +198,7 @@ class SetupTests(TestCase):
         If called after setup(), no_setup() throws an exception.
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertRaises(RuntimeError, s.no_setup)
 
@@ -205,7 +208,7 @@ class SetupTests(TestCase):
         setup().
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertEqual(reactor.events,
                          [("before", "shutdown", s._registry.stop)])
@@ -217,7 +220,7 @@ class SetupTests(TestCase):
         setup().
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.no_setup()
         self.assertEqual(reactor.events,
                          [("before", "shutdown", s._registry.stop)])
@@ -234,7 +237,7 @@ class ProcessSetupTests(TestCase):
         """
         reactor = FakeReactor()
         reaps = []
-        s = EventLoop(reactor, lambda f, *g: None,
+        s = EventLoop(lambda: reactor, lambda f, *g: None,
                       reapAllProcesses=lambda: reaps.append(1))
         s.setup()
         reactor.advance(0.1)
@@ -251,7 +254,7 @@ class ProcessSetupTests(TestCase):
         On POSIX systems, setup() does not install a LoopingCall.
         """
         reactor = FakeReactor()
-        s = EventLoop(reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertFalse(reactor.getDelayedCalls())
 
