@@ -415,6 +415,7 @@ class EventLoop(object):
             self._registry.register(result)
             self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
             return result
+        wrapper.wrapped_function = function
         return wrapper
 
     def wait_for_reactor(self, function):
@@ -454,6 +455,7 @@ class EventLoop(object):
                 except TimeoutError:
                     eventual_result.cancel()
                     raise
+            wrapper.wrapped_function = function
             return wrapper
         return decorator
 

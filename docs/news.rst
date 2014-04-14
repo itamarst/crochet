@@ -9,6 +9,9 @@ New features:
   in previous versions of Crochet. ``crochet.wait_for_reactor`` and
   ``EventualResult.wait(timeout=None)`` are now deprecated, since lacking
   timeouts they could potentially block forever.
+* Functions wrapped with ``wait_for`` and ``run_in_reactor`` can now be accessed
+  via the ``wrapped_function`` attribute, to ease unit testing of the underlying
+  Twisted code.
 
 API changes:
 

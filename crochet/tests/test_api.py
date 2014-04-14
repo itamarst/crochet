@@ -664,6 +664,17 @@ class RunInReactorTests(TestCase):
         result = run()
         self.assertIn(result, c._registry._results)
 
+    def test_wrapped_function(self):
+        """
+        The function wrapped by @run_in_reactor can be accessed via the
+        `wrapped_function` attribute.
+        """
+        c = EventLoop(lambda: None, lambda f, g: None)
+        def func():
+            pass
+        wrapper = c.run_in_reactor(func)
+        self.assertIdentical(wrapper.wrapped_function, func)
+
 
 class WaitTestsMixin(object):
     """
@@ -704,6 +715,17 @@ class WaitTestsMixin(object):
         def some_name(argument):
             pass
         self.assertEqual(some_name.__name__, "some_name")
+
+    def test_wrapped_function(self):
+        """
+        The function wrapped by the wait decorator can be accessed via the
+        `wrapped_function` attribute.
+        """
+        decorator = self.decorator()
+        def func():
+            pass
+        wrapper = decorator(func)
+        self.assertIdentical(wrapper.wrapped_function, func)
 
     def test_reactor_thread_disallowed(self):
         """

@@ -23,7 +23,7 @@ will do anything.
 
 
 @wait_for: Blocking Calls into Twisted
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Now that you've got the reactor running, the next stage is defining some
 functions that will run inside the Twisted reactor thread. Twisted's APIs are
@@ -157,6 +157,22 @@ to use a Crochet-using library must run it first:
     from twisted.internet import reactor
     reactor.run()
 
+
+Unit Testing
+^^^^^^^^^^^^
+
+Both ``@wait_for`` and ``@run_in_reactor`` expose the underlying Twisted
+function via a ``wrapped_function`` attribute. This allows unit testing of the
+Twisted code without having to go through the Crochet layer.
+
+.. literalinclude:: ../examples/testing.py
+
+When run, this gives the following output::
+
+    add() returns EventualResult:
+         <crochet._eventloop.EventualResult object at 0x2e8b390>
+    add.wrapped_function() returns result of underlying function:
+         3
 
 Reducing Twisted Log Messages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
