@@ -1,10 +1,5 @@
-.. Crochet documentation master file, created by
-   sphinx-quickstart on Mon Sep 16 19:37:18 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Crochet: Use Twisted Anywhere!
-==============================
+Use Twisted Anywhere!
+=====================
 
 Crochet is an MIT-licensed library that makes it easier for blocking and
 threaded applications like Flask or Django to use the Twisted networking
@@ -26,8 +21,9 @@ Table of Contents
 ^^^^^^^^^^^^^^^^^
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    introduction
    api
    using
+   news

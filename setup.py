@@ -20,6 +20,12 @@ def get_crochet_version():
         exec(version_module.read())
     return locals()["__version__"]
 
+def read(path):
+    """
+    Read the contents of a file.
+    """
+    with open(path) as f:
+        return f.read()
 
 setup(
     classifiers=[
@@ -45,5 +51,5 @@ setup(
     url="https://github.com/itamarst/crochet",
     maintainer='Itamar Turner-Trauring',
     maintainer_email='itamar@itamarst.org',
-    long_description=open('README.rst').read(),
+    long_description=read('README.rst') + '\n' + read('docs/news.rst'),
 )
