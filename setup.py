@@ -51,5 +51,5 @@ setup(
     url="https://github.com/itamarst/crochet",
     maintainer='Itamar Turner-Trauring',
     maintainer_email='itamar@itamarst.org',
-    long_description=read('README.rst') + '\n' + read('NEWS.rst'),
+    long_description=read('README.rst') + '\n' + read('docs/news.rst'),
 )
