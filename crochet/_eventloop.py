@@ -212,12 +212,19 @@ class EventualResult(object):
                 "EventualResult.wait() must not be run in the reactor thread.")
 
         if imp.lock_held():
-            # If EventualResult.wait() is run during module import, if the
-            # Twisted code that is being run also imports something the result
-            # will be a deadlock. Even if that is not an issue it would
-            # prevent importing in other threads until the call returns.
-            raise RuntimeError(
-                "EventualResult.wait() must not be run at module import time.")
+            try:
+                imp.release_lock()
+            except RuntimeError:
+                # The lock is held by some other thread. We should be safe
+                # to continue.
+                pass
+            else:
+                # If EventualResult.wait() is run during module import, if the
+                # Twisted code that is being run also imports something the result
+                # will be a deadlock. Even if that is not an issue it would
+                # prevent importing in other threads until the call returns.
+                raise RuntimeError(
+                    "EventualResult.wait() must not be run at module import time.")
 
         result = self._result(timeout)
         if isinstance(result, Failure):
