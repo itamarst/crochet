@@ -25,7 +25,10 @@ else:
 from ._shutdown import _watchdog, register
 from ._eventloop import (EventualResult, TimeoutError, EventLoop, _store,
                          ReactorStopped)
-from ._version import __version__
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
+
 
 def _importReactor():
     from twisted.internet import reactor
