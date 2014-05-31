@@ -8,6 +8,7 @@ env:
   - TWISTED=Twisted==13.0 RUNTESTS=trial
   - TWISTED=Twisted==13.1 RUNTESTS=trial
   - TWISTED=Twisted==13.2 RUNTESTS=trial
+  - TWISTED=Twisted==14.0 RUNTESTS=trial
 
 python:
   - 2.6
