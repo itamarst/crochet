@@ -9,6 +9,10 @@ Bug fixes:
 * It is now possible to call ``EventualResult.wait()`` (or functions
   wrapped in ``wait_for``) at import time if another thread holds the
   import lock. Thanks to Ken Struys for the patch.
+* ``EventualResult`` instances now only get a ``ReactorStopped`` error if they
+  have no result after the reactor stopped, since results may become available
+  as part of the reactor shutdown process. Thanks to Aaron Gallagher for the
+  bug report.
 
 1.2.0
 ^^^^^

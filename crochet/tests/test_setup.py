@@ -207,26 +207,26 @@ class SetupTests(TestCase):
 
     def test_setup_registry_shutdown(self):
         """
-        ResultRegistry.stop() is registered to run before reactor shutdown by
+        ResultRegistry.stop() is registered to run after reactor shutdown by
         setup().
         """
         reactor = FakeReactor()
         s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertEqual(reactor.events,
-                         [("before", "shutdown", s._registry.stop)])
+                         [("after", "shutdown", s._registry.stop)])
 
 
     def test_no_setup_registry_shutdown(self):
         """
-        ResultRegistry.stop() is registered to run before reactor shutdown by
-        setup().
+        ResultRegistry.stop() is registered to run after reactor shutdown by
+        no_setup().
         """
         reactor = FakeReactor()
         s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.no_setup()
         self.assertEqual(reactor.events,
-                         [("before", "shutdown", s._registry.stop)])
+                         [("after", "shutdown", s._registry.stop)])
 
 
 class ProcessSetupTests(TestCase):

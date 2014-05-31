@@ -344,7 +344,7 @@ class EventLoop(object):
         # We want to unblock EventualResult regardless of how the reactor is
         # run, so we always register this:
         self._reactor.addSystemEventTrigger(
-            "before", "shutdown", self._registry.stop)
+            "after", "shutdown", self._registry.stop)
 
     @synchronized
     def setup(self):
