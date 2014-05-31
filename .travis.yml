@@ -1,13 +1,13 @@
 language: python
 
 env:
-  - TWISTED=Twisted==12.0 RUNTESTS=trial
   - TWISTED=Twisted==12.1 RUNTESTS=trial
   - TWISTED=Twisted==12.2 RUNTESTS=trial
   - TWISTED=Twisted==12.3 RUNTESTS=trial
   - TWISTED=Twisted==13.0 RUNTESTS=trial
   - TWISTED=Twisted==13.1 RUNTESTS=trial
   - TWISTED=Twisted==13.2 RUNTESTS=trial
+  - TWISTED=Twisted==14.0 RUNTESTS=trial
 
 python:
   - 2.6
@@ -17,7 +17,7 @@ python:
 matrix:
   include:
     - python: 3.3
-      env: TWISTED=git+https://github.com/twisted/twisted.git RUNTESTS="python -m unittest discover"
+      env: TWISTED=14.0 RUNTESTS="python -m unittest discover"
 
 install:
   - python setup.py --version
