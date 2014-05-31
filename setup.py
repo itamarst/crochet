@@ -5,20 +5,12 @@ try:
 except ImportError:
     from distutils.core import setup
 
+import versioneer
+versioneer.versionfile_source = 'crochet/_version.py'
+versioneer.versionfile_build = 'crochet/_version.py'
+versioneer.tag_prefix = '' # tags are like 1.2.0
+versioneer.parentdir_prefix = 'crochet-'
 
-def get_crochet_version():
-    """
-    Get crochet version from version module without importing more than
-    necessary.
-    """
-    this_dir_path = os.path.dirname(__file__)
-    crochet_module_path = os.path.join(this_dir_path, "crochet")
-    version_module_path = os.path.join(crochet_module_path, "_version.py")
-
-    # The version module contains a variable called __version__
-    with open(version_module_path) as version_module:
-        exec(version_module.read())
-    return locals()["__version__"]
 
 def read(path):
     """
@@ -40,7 +32,8 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
     name='crochet',
-    version=get_crochet_version(),
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     description="Use Twisted anywhere!",
     install_requires=[
         "Twisted>=11.1",
