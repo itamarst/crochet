@@ -54,7 +54,7 @@ class FunctionRegistry(object):
 
 
 # This is... fragile. Not sure how else to do it though.
+_main_thread = [t for t in threading.enumerate() if t.name == "MainThread"]
 _registry = FunctionRegistry()
-_watchdog = Watchdog([t for t in threading.enumerate()
-                     if t.name == "MainThread"][0], _registry.run)
+_watchdog = Watchdog(_main_thread[0], _registry.run) if _main_thread else None
 register = _registry.register
