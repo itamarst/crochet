@@ -13,7 +13,7 @@ setup()
 # Twisted code:
 def _mx(domain):
     """
-    Return Defered that fires with a list of (priority, MX domain) tuples for
+    Return Deferred that fires with a list of (priority, MX domain) tuples for
     a given domain.
     """
     def got_records(result):
@@ -23,6 +23,7 @@ def _mx(domain):
     d = lookupMailExchange(domain)
     d.addCallback(got_records)
     return d
+
 
 # Blocking wrapper:
 @wait_for(timeout=5)
