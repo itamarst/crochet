@@ -59,6 +59,19 @@ class FakeThread:
         self.started = True
 
 
+class FakeFunctionRegistry(object):
+
+    def __init__(self):
+        self.atexit = []
+        self.has_run = False
+
+    def register(self, func, *args):
+        self.atexit.append((func, args))
+
+    def run(self):
+        self.has_run = True
+
+
 class SetupTests(TestCase):
     """
     Tests for setup().
@@ -69,7 +82,7 @@ class SetupTests(TestCase):
         With it first call, setup() runs the reactor in a thread.
         """
         reactor = FakeReactor()
-        EventLoop(lambda: reactor, lambda f, *g: None).setup()
+        EventLoop(lambda: reactor, FakeFunctionRegistry()).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
         self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
@@ -80,7 +93,7 @@ class SetupTests(TestCase):
         The second call to setup() does nothing.
         """
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, FakeFunctionRegistry())
         s.setup()
         s.setup()
         reactor.started.wait(5)
@@ -91,18 +104,18 @@ class SetupTests(TestCase):
         setup() registers an exit handler that stops the reactor, and an exit
         handler that logs stashed EventualResults.
         """
-        atexit = []
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *args: atexit.append((f, args)))
+        registry = FakeFunctionRegistry()
+        s = EventLoop(lambda: reactor, registry)
         s.setup()
-        self.assertEqual(len(atexit), 2)
+        self.assertEqual(len(registry.atexit), 2)
         self.assertFalse(reactor.stopping)
-        f, args = atexit[0]
+        f, args = registry.atexit[0]
         self.assertEqual(f, reactor.callFromThread)
         self.assertEqual(args, (reactor.stop,))
         f(*args)
         self.assertTrue(reactor.stopping)
-        f, args = atexit[1]
+        f, args = registry.atexit[1]
         self.assertEqual(f, _store.log_errors)
         self.assertEqual(args, ())
         f(*args) # make sure it doesn't throw an exception
@@ -132,7 +145,7 @@ class SetupTests(TestCase):
             logging.append(observer)
 
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+        loop = EventLoop(lambda: reactor, FakeFunctionRegistry(),
                          fakeStartLoggingWithObserver)
         loop.setup()
         self.assertTrue(logging)
@@ -144,7 +157,7 @@ class SetupTests(TestCase):
         """
         observers = []
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *arg: None,
+        s = EventLoop(lambda: reactor, FakeFunctionRegistry(),
                       lambda observer, setStdout=1: observers.append(observer))
         s.setup()
         self.addCleanup(observers[0].stop)
@@ -160,7 +173,7 @@ class SetupTests(TestCase):
             self.addCleanup(observer.stop)
         original = warnings.showwarning
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+        loop = EventLoop(lambda: reactor, FakeFunctionRegistry(),
                          fakeStartLoggingWithObserver)
         loop.setup()
         self.assertIdentical(warnings.showwarning, original)
@@ -169,12 +182,10 @@ class SetupTests(TestCase):
         """
         setup() starts the shutdown watchdog thread.
         """
-        thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda *args: None,
-                         watchdog_thread=thread)
+        loop = EventLoop(lambda: reactor, FakeFunctionRegistry())
         loop.setup()
-        self.assertTrue(thread.started)
+        self.assertTrue(loop._watchdog_thread.is_alive)
 
     def test_no_setup(self):
         """
@@ -182,26 +193,24 @@ class SetupTests(TestCase):
         nothing.
         """
         observers = []
-        atexit = []
-        thread = FakeThread()
+        registry = FakeFunctionRegistry()
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *arg: atexit.append(f),
-                         lambda observer, *a, **kw: observers.append(observer),
-                         watchdog_thread=thread)
+        loop = EventLoop(lambda: reactor,
+                         registry,
+                         lambda observer, *a, **kw: observers.append(observer))
 
         loop.no_setup()
         loop.setup()
         self.assertFalse(observers)
-        self.assertFalse(atexit)
+        self.assertFalse(registry.atexit)
         self.assertFalse(reactor.runs)
-        self.assertFalse(thread.started)
 
     def test_no_setup_after_setup(self):
         """
         If called after setup(), no_setup() throws an exception.
         """
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, FakeFunctionRegistry())
         s.setup()
         self.assertRaises(RuntimeError, s.no_setup)
 
@@ -211,7 +220,7 @@ class SetupTests(TestCase):
         setup().
         """
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *g: None)
+        s = EventLoop(lambda: reactor, FakeFunctionRegistry())
         s.setup()
         self.assertEqual(reactor.events,
                          [("before", "shutdown", s._registry.stop)])
@@ -240,7 +249,7 @@ class ProcessSetupTests(TestCase):
         """
         reactor = FakeReactor()
         reaps = []
-        s = EventLoop(lambda: reactor, lambda f, *g: None,
+        s = EventLoop(lambda: reactor, FakeFunctionRegistry(),
                       reapAllProcesses=lambda: reaps.append(1))
         s.setup()
         reactor.advance(0.1)

@@ -22,19 +22,18 @@ else:
     # waitpid() is only necessary on POSIX:
     reapAllProcesses = lambda: None
 
-from ._shutdown import _watchdog, register
+from ._shutdown import registry, register
 from ._eventloop import (EventualResult, TimeoutError, EventLoop, _store,
                          ReactorStopped)
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-
 def _importReactor():
     from twisted.internet import reactor
     return reactor
-_main = EventLoop(_importReactor, register, startLoggingWithObserver,
-                  _watchdog, reapAllProcesses)
+_main = EventLoop(_importReactor, registry, startLoggingWithObserver,
+                  reapAllProcesses)
 setup = _main.setup
 no_setup = _main.no_setup
 run_in_reactor = _main.run_in_reactor

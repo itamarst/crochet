@@ -21,6 +21,7 @@ from twisted.internet.task import LoopingCall
 
 from ._util import synchronized
 from ._resultstore import ResultStore
+from ._shutdown import Watchdog, default_shutdown_condition
 
 _store = ResultStore()
 
@@ -305,25 +306,23 @@ class EventLoop(object):
     """
     Initialization infrastructure for running a reactor in a thread.
     """
-    def __init__(self, reactorFactory, atexit_register,
+    def __init__(self, reactorFactory, atexit_registry,
                  startLoggingWithObserver=None,
-                 watchdog_thread=None,
                  reapAllProcesses=None):
         """
         reactorFactory: Zero-argument callable that returns a reactor.
         atexit_register: atexit.register, or look-alike.
         startLoggingWithObserver: Either None, or
             twisted.python.log.startLoggingWithObserver or lookalike.
-        watchdog_thread: crochet._shutdown.Watchdog instance, or None.
         reapAllProcesses: twisted.internet.process.reapAllProcesses or
             lookalike.
         """
         self._reactorFactory = reactorFactory
-        self._atexit_register = atexit_register
+        self._atexit_registry = atexit_registry
         self._startLoggingWithObserver = startLoggingWithObserver
         self._started = False
         self._lock = threading.Lock()
-        self._watchdog_thread = watchdog_thread
+        self._watchdog_thread = None
         self._reapAllProcesses = reapAllProcesses
 
     def _startReapingProcesses(self):
@@ -347,7 +346,7 @@ class EventLoop(object):
             "before", "shutdown", self._registry.stop)
 
     @synchronized
-    def setup(self):
+    def setup(self, shutdown_condition=None):
         """
         Initialize the crochet library.
 
@@ -382,11 +381,16 @@ class EventLoop(object):
             target=lambda: self._reactor.run(installSignalHandlers=False),
             name="CrochetReactor")
         t.start()
-        self._atexit_register(self._reactor.callFromThread,
-                              self._reactor.stop)
-        self._atexit_register(_store.log_errors)
-        if self._watchdog_thread is not None:
-            self._watchdog_thread.start()
+        self._atexit_registry.register(
+            self._reactor.callFromThread,
+            self._reactor.stop)
+        self._atexit_registry.register(_store.log_errors)
+        if shutdown_condition is None:
+            shutdown_condition = default_shutdown_condition()
+        self._watchdog_thread = Watchdog(
+            shutdown_condition,
+            self._atexit_registry.run)
+        self._watchdog_thread.start()
 
     @synchronized
     def no_setup(self):

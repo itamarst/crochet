@@ -15,16 +15,17 @@ from twisted.python import log
 
 class Watchdog(threading.Thread):
     """
-    Watch a given thread, call a list of functions when that thread exits.
+    Poll for a shutdown condition to be True, call a shutdown function
+    when it becomes True.
     """
 
-    def __init__(self, canary, shutdown_function):
+    def __init__(self, shutdown_condition, shutdown_function):
         threading.Thread.__init__(self, name="CrochetShutdownWatchdog")
-        self._canary = canary
+        self._shutdown_condition = shutdown_condition
         self._shutdown_function = shutdown_function
 
     def run(self):
-        while self._canary.is_alive():
+        while not self._shutdown_condition():
             time.sleep(0.1)
         self._shutdown_function()
 
@@ -53,8 +54,15 @@ class FunctionRegistry(object):
                 log.err()
 
 
-# This is... fragile. Not sure how else to do it though.
-_registry = FunctionRegistry()
-_watchdog = Watchdog([t for t in threading.enumerate()
-                     if t.name == "MainThread"][0], _registry.run)
-register = _registry.register
+def default_shutdown_condition():
+    main_thread = [t for t in threading.enumerate()
+                   if t.name == "MainThread"][0]
+
+    def shutdown_condition():
+        return not main_thread.is_alive()
+
+    return shutdown_condition
+
+
+registry = FunctionRegistry()
+register = registry.register
