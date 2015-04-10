@@ -1,2 +1,3 @@
 Twisted>=11.1.0
 sphinx
+decorator
