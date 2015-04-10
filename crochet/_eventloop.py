@@ -9,6 +9,7 @@ import threading
 import weakref
 import warnings
 from functools import wraps
+from decorator import decorator
 
 import imp
 
@@ -416,14 +417,16 @@ class EventLoop(object):
             d = maybeDeferred(function, *args, **kwargs)
             result._connect_deferred(d)
 
-        @wraps(function)
-        def wrapper(*args, **kwargs):
+        def wrapper(function, *args, **kwargs):
             result = EventualResult(None, self._reactor)
             self._registry.register(result)
             self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
             return result
-        wrapper.wrapped_function = function
-        return wrapper
+
+        decorated = decorator(wrapper, function)
+        decorated.wrapped_function = function
+
+        return decorated
 
     def wait_for_reactor(self, function):
         """
@@ -450,21 +453,23 @@ class EventLoop(object):
         timeout after the given number of seconds (a float), raising a
         crochet.TimeoutError, and cancelling the Deferred being waited on.
         """
-        def decorator(function):
-            @wraps(function)
-            def wrapper(*args, **kwargs):
-                @self.run_in_reactor
-                def run():
-                    return function(*args, **kwargs)
-                eventual_result = run()
-                try:
-                    return eventual_result.wait(timeout)
-                except TimeoutError:
-                    eventual_result.cancel()
-                    raise
-            wrapper.wrapped_function = function
-            return wrapper
-        return decorator
+        def wrapper(function, *args, **kwargs):
+            @self.run_in_reactor
+            def run():
+                return function(*args, **kwargs)
+            eventual_result = run()
+            try:
+                return eventual_result.wait(timeout)
+            except TimeoutError:
+                eventual_result.cancel()
+                raise
+
+        def wait_for_decorator(function):
+            decorated = decorator(wrapper, function)
+            decorated.wrapped_function = function
+            return decorated
+
+        return wait_for_decorator
 
     def in_reactor(self, function):
         """
