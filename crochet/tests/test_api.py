@@ -13,6 +13,7 @@ import weakref
 import tempfile
 import os
 import imp
+import inspect
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
@@ -609,6 +610,20 @@ class RunInReactorTests(TestCase):
     """
     Tests for the run_in_reactor decorator.
     """
+
+    def test_signature(self):
+        """
+        The function decorated with the run_in_reactor decorator has the same
+        signature as the original function.
+        """
+        c = EventLoop(lambda: FakeReactor(), lambda f, g: None)
+
+        def some_name(arg1, arg2, karg1=2, *args, **kw):
+            pass
+        decorated = c.run_in_reactor(some_name)
+        self.assertEqual(str(inspect.getargspec(some_name)),
+                         str(inspect.getargspec(decorated)))
+
     def test_name(self):
         """
         The function decorated with run_in_reactor has the same name as the
@@ -756,6 +771,18 @@ class WaitTestsMixin(object):
                 raise argument
             return argument
         return passthrough
+
+    def test_signature(self):
+        """
+        The function decorated with the wait decorator has the same signature
+        as the original function.
+        """
+        decorator = self.decorator()
+        def some_name(arg1, arg2, karg1=2, *args, **kw):
+            pass
+        decorated = decorator(some_name)
+        self.assertEqual(str(inspect.getargspec(some_name)),
+                         str(inspect.getargspec(decorated)))
 
     def test_name(self):
         """
