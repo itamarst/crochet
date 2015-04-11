@@ -621,8 +621,8 @@ class RunInReactorTests(TestCase):
         def some_name(arg1, arg2, karg1=2, *args, **kw):
             pass
         decorated = c.run_in_reactor(some_name)
-        self.assertEqual(str(inspect.getargspec(some_name)),
-                         str(inspect.getargspec(decorated)))
+        self.assertEqual(inspect.getargspec(some_name),
+                         inspect.getargspec(decorated))
 
     def test_name(self):
         """
@@ -781,8 +781,8 @@ class WaitTestsMixin(object):
         def some_name(arg1, arg2, karg1=2, *args, **kw):
             pass
         decorated = decorator(some_name)
-        self.assertEqual(str(inspect.getargspec(some_name)),
-                         str(inspect.getargspec(decorated)))
+        self.assertEqual(inspect.getargspec(some_name),
+                         inspect.getargspec(decorated))
 
     def test_name(self):
         """

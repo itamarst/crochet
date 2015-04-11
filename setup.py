@@ -37,6 +37,7 @@ setup(
     description="Use Twisted anywhere!",
     install_requires=[
         "Twisted>=11.1",
+        "decorator",
     ],
     keywords="twisted threading",
     license="MIT",

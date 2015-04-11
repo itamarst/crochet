@@ -1,6 +1,10 @@
 What's New
 ==========
 
+* ``wait_for`` and ``run_in_reactor`` now preserve signature of the wrapped
+   functions due to use of the ``decorator`` module. Thanks to Mikhail Terekhov
+   for the patch.
+
 1.3.0
 ^^^^^
 
