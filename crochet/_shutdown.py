@@ -55,6 +55,11 @@ class FunctionRegistry(object):
 
 # This is... fragile. Not sure how else to do it though.
 _registry = FunctionRegistry()
-_watchdog = Watchdog([t for t in threading.enumerate()
-                     if t.name == "MainThread"][0], _registry.run)
+_watchdog = Watchdog(
+    [
+        t for t in threading.enumerate()
+        if isinstance(t, threading._MainThread)
+    ][0],
+    _registry.run,
+)
 register = _registry.register
