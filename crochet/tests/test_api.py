@@ -516,21 +516,14 @@ EventualResult(Deferred(), None).wait(1.0)
         # assertions at the end of the test.
         assertions = []
 
-        if hasattr(sys, 'pypy_version_info'):
-            # Under PyPy imp.lock_held only returns True if the current thread
-            # holds the lock. If/When that bug is fixed, this assertion
-            # should fail and we should remove this special casing.
-            # See: http://stackoverflow.com/q/23816549/132413
-            assertions.append((imp.lock_held(), False))
-        else:
-            # we want to run .wait while the other thread has the lock acquired
-            assertions.append((imp.lock_held(), True))
-            try:
-                assertions.append((er.wait(), 123))
-            finally:
-                test_complete.set()
+        # we want to run .wait while the other thread has the lock acquired
+        assertions.append((imp.lock_held(), True))
+        try:
+            assertions.append((er.wait(), 123))
+        finally:
+            test_complete.set()
 
-            assertions.append((imp.lock_held(), True))
+        assertions.append((imp.lock_held(), True))
 
         test_complete.set()
 
