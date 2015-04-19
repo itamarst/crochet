@@ -4,7 +4,9 @@ What's New
 1.4.0
 ^^^^^
 
-* Added support for Python 3.4, dropped support for Python 2.6.
+New features:
+
+* Added support for Python 3.4.
 
 1.3.0
 ^^^^^
