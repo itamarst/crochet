@@ -9,7 +9,6 @@ env:
   - TWISTED=Twisted==15.1 RUNTESTS=trial
 
 python:
-  - 2.6
   - 2.7
   - pypy
 
