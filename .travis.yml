@@ -22,10 +22,12 @@ matrix:
 
 install:
   - python setup.py --version
-  - pip install -q --no-use-wheel $TWISTED --use-mirrors
+  - pip install -q $TWISTED pyflakes
   - python setup.py -q install
 
-script: $RUNTESTS crochet.tests
+script:
+  - $RUNTESTS crochet.tests
+  - pyflakes crochet
 
 notifications:
   email: false
