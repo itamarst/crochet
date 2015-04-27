@@ -981,7 +981,7 @@ class PublicAPITests(TestCase):
         call any methods on the objects it is created with.
         """
         c = EventLoop(lambda: None, lambda f, g: 1/0, lambda *args: 1/0,
-                      watchdog_thread=object(), reapAllProcesses=lambda: 1/0)
+                      reapAllProcesses=lambda: 1/0)
         del c
 
     def test_eventloop_api(self):
@@ -998,10 +998,9 @@ class PublicAPITests(TestCase):
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
         self.assertEqual(_main.wait_for_reactor, wait_for_reactor)
         self.assertEqual(_main.wait_for, wait_for)
-        self.assertIdentical(_main._atexit_register, _shutdown.register)
+        self.assertIdentical(_main._atexit_registry, _shutdown.registry)
         self.assertIdentical(_main._startLoggingWithObserver,
                              startLoggingWithObserver)
-        self.assertIdentical(_main._watchdog_thread, _shutdown._watchdog)
 
     def test_eventloop_api_reactor(self):
         """
