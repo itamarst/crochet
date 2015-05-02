@@ -17,6 +17,9 @@ Bug fixes:
   wrapped in ``wait_for``) at import time if another thread holds the
   import lock. Thanks to Ken Struys for the patch.
 
+* Watchdog can now be properly created when the main thread is renamed,
+  e.g. in uWsgi processes. Thanks to Ben Picolo for the patch.
+
 1.2.0
 ^^^^^
 New features:
