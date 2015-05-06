@@ -8,17 +8,22 @@ New features:
 
 * Added support for Python 3.4.
 
-1.3.0
-^^^^^
+Documentation:
+
+* Added a section on known issues and workarounds.
 
 Bug fixes:
+
+* Main thread detection (used to determine when Crochet should shutdown) is now less fragile.
+  This means Crochet now supports more environments, e.g. uWSGI.
+  Thanks to Ben Picolo for the patch.
+
+1.3.0
+^^^^^
 
 * It is now possible to call ``EventualResult.wait()`` (or functions
   wrapped in ``wait_for``) at import time if another thread holds the
   import lock. Thanks to Ken Struys for the patch.
-
-* Watchdog can now be properly created when the main thread is renamed,
-  e.g. in uWsgi processes. Thanks to Ben Picolo for the patch.
 
 1.2.0
 ^^^^^
