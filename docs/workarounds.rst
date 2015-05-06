@@ -53,3 +53,31 @@ You can however get access to a string version of the traceback, suitable for lo
     except:
         # Something else happened:
         print(result.original_failure().getTraceback())
+
+uWSGI, multiprocessing, Celery
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+uWSGI, the standard library ``multiprocessing.py`` library and Celery by default use ``fork()`` without ``exec()`` to create child processes on Unix systems.
+This means they effectively clone a running parent Python process, preserving all existing imported modules.
+This is a fundamentally broken thing to do, e.g. it breaks the standard library's ``logging`` package.
+It also breaks Crochet.
+
+You have two options for dealing with this problem.
+The ideal solution is to avoid this "feature":
+
+uWSGI
+  Use the ``--lazy-apps`` command-line option.
+
+``multiprocessing.py``
+  Use the ``spawn`` (or possibly ``forkserver``) start methods when using Python 3. See https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods for more details.
+
+Alternatively, you can ensure you only start Crochet inside the child process:
+
+uWSGI
+  Only run ``crochet.setup()`` inside the WSGI application function.
+
+``multiprocessing.py``
+  Only run ``crochet.setup()`` in the child process.
+
+Celery
+  Only run ``crochet.setup()`` inside tasks.
