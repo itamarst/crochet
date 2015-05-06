@@ -21,6 +21,8 @@ Bug fixes:
 1.3.0
 ^^^^^
 
+Bug fixes:
+
 * It is now possible to call ``EventualResult.wait()`` (or functions
   wrapped in ``wait_for``) at import time if another thread holds the
   import lock. Thanks to Ken Struys for the patch.
