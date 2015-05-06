@@ -173,14 +173,3 @@ When run, this gives the following output::
          <crochet._eventloop.EventualResult object at 0x2e8b390>
     add.wrapped_function() returns result of underlying function:
          3
-
-Reducing Twisted Log Messages
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Twisted can be rather verbose with its log messages. If you wish to reduce the
-message flow you can limit them to error messages only:
-
-.. code-block:: python
-
-   import logging
-   logging.getLogger('twisted').setLevel(logging.ERROR)

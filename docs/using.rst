@@ -1,5 +1,5 @@
-Using Crochet
--------------
+Best Practices
+--------------
 
 Hide Twisted and Crochet
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -48,20 +48,3 @@ extra layer between this code and the application code is also useful in this
 regard as well: Twisted code can be pushed into the lower-level Twisted layer,
 and code hiding the Twisted details from the application code can be pushed
 into the higher-level layer.
-
-
-Preventing Deadlocks on Shutdown
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To ensure a timely process exit, during reactor shutdown Crochet will try to
-interrupt calls to ``EventualResult.wait()`` or functions decorated with
-``@wait_for`` with a ``crochet.ReactorStopped`` exception. This is still not a
-complete solution, unfortunately. If you are shutting down a thread pool as
-part of Twisted's reactor shutdown, this will wait until all threads are
-done. If you're blocking indefinitely, this may rely on Crochet interrupting
-those blocking calls... but Crochet's shutdown may be delayed until the thread
-pool finishes shutting down, depending on the ordering of shutdown events.
-
-The solution is to interrupt all blocking calls yourself. You can do this by
-firing or canceling any ``Deferred`` instances you are waiting on as part of
-your application shutdown, and do so before you stop any thread pools.
