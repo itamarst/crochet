@@ -7,6 +7,9 @@ What's New
 New features:
 
 * Added support for Python 3.4.
+* ``wait_for`` and ``run_in_reactor`` now preserve signature of the wrapped
+   functions due to use of the ``decorator`` module. Thanks to Mikhail Terekhov
+   for the patch.
 
 Documentation:
 
