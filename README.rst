@@ -17,6 +17,10 @@ regular blocking code. Some use cases include:
 
 Crochet is maintained by Itamar Turner-Trauring.
 
+You can install Crochet by running::
+
+  $ pip install crochet
+
 Downloads are available on `PyPI`_.
 
 Documentation can be found on `Read The Docs`_.
