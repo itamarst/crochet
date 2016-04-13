@@ -31,7 +31,7 @@ Bugs and feature requests should be filed at the project `Github page`_.
 Features
 ========
 
-Crochet aims for 100% unit test coverage, and supports Python 2.6, 2.7, 3.3 and 3.4 as well as PyPy.
+Crochet aims for 100% unit test coverage, and supports Python 2.7, 3.4 and 3.5 as well as PyPy.
 
 .. image:: https://travis-ci.org/itamarst/crochet.png?branch=master
            :target: http://travis-ci.org/itamarst/crochet
