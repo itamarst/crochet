@@ -1,6 +1,17 @@
 What's New
 ==========
 
+1.5.0
+^^^^^
+
+New features:
+
+* Added support for Python 3.5.
+
+Removed features:
+
+* Python 2.6, Python 3.3, and versions of Twisted < 15.0 are no longer supported.
+
 1.4.0
 ^^^^^
 
