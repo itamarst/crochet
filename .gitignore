@@ -10,6 +10,9 @@ _trial_temp
 # Distribution
 dist
 crochet.egg-info
+MANIFEST
 
 # Documentation
 docs/_build
+
+build/
