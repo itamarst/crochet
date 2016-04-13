@@ -8,8 +8,9 @@ import threading
 import warnings
 import subprocess
 import sys
+from unittest import SkipTest, TestCase
 
-from twisted.trial.unittest import TestCase
+import twisted
 from twisted.python.log import PythonLoggingObserver
 from twisted.python import log
 from twisted.python.runtime import platform
@@ -126,7 +127,7 @@ class SetupTests(TestCase):
             expected = PythonLoggingObserver.emit
             # Python 3 and 2 differ in value of __func__:
             expected = getattr(expected, "__func__", expected)
-            self.assertIdentical(wrapped.__func__, expected)
+            self.assertIs(wrapped.__func__, expected)
             self.assertEqual(setStdout, False)
             self.assertTrue(reactor.in_call_from_thread)
             logging.append(observer)
@@ -163,7 +164,7 @@ class SetupTests(TestCase):
         loop = EventLoop(lambda: reactor, lambda f, *g: None,
                          fakeStartLoggingWithObserver)
         loop.setup()
-        self.assertIdentical(warnings.showwarning, original)
+        self.assertIs(warnings.showwarning, original)
 
     def test_start_watchdog_thread(self):
         """
@@ -254,15 +255,14 @@ class ProcessSetupTests(TestCase):
 
     def test_non_posix(self):
         """
-        On POSIX systems, setup() does not install a LoopingCall.
+        On non-POSIX systems, setup() does not install a LoopingCall.
         """
+        if platform.type == "posix":
+            raise SkipTest("This test is for non-POSIX systems.")
         reactor = FakeReactor()
         s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertFalse(reactor.getDelayedCalls())
-
-    if platform.type == "posix":
-        test_non_posix.skip = "SIGCHLD is a POSIX-specific issue"
 
 
 class ThreadLogObserverTest(TestCase):
@@ -338,3 +338,72 @@ if "twisted.internet.reactor" not in sys.modules:
         process = subprocess.Popen([sys.executable, "-c", program],
                                    cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
+
+
+LOGGING_PROGRAM = """\
+import sys
+from logging import StreamHandler, Formatter, getLogger, DEBUG
+handler = StreamHandler(sys.stdout)
+handler.setFormatter(Formatter("%%(levelname)s %%(message)s"))
+l = getLogger("twisted")
+l.addHandler(handler)
+l.setLevel(DEBUG)
+
+import crochet
+crochet.setup()
+from twisted.python import log
+%s
+log.msg("log-info")
+log.msg("log-error", isError=True)
+"""
+
+class LoggingTests(TestCase):
+    """
+    End-to-end tests for Twisted->stdlib logging bridge.
+    """
+    maxDiff = None
+
+    def test_old_logging(self):
+        """
+        Messages from the old Twisted logging API are emitted to Python
+        standard library logging.
+        """
+        if tuple(map(int, twisted.__version__.split("."))) >= (15, 2, 0):
+            raise SkipTest("This test is for Twisted < 15.2.")
+
+        program = LOGGING_PROGRAM % ("",)
+        output = subprocess.check_output([sys.executable, "-u", "-c", program],
+                                         cwd=crochet_directory)
+        self.assertTrue(output.startswith("""\
+INFO Log opened.
+INFO log-info
+ERROR log-error
+"""))
+
+    def test_new_logging(self):
+        """
+        Messages from both new and old Twisted logging APIs are emitted to Python
+        standard library logging.
+        """
+        if tuple(map(int, twisted.__version__.split("."))) < (15, 2, 0):
+            raise SkipTest("This test is for Twisted 15.2 and later.")
+
+        program = LOGGING_PROGRAM % ("""\
+from twisted.logger import Logger
+l2 = Logger()
+l2.info("logger-info")
+l2.critical("logger-critical")
+l2.warn("logger-warning")
+l2.debug("logger-debug")
+""",)
+        output = subprocess.check_output([sys.executable, "-u", "-c", program],
+                                         cwd=crochet_directory)
+        self.assertIn("""\
+INFO logger-info
+CRITICAL logger-critical
+WARNING logger-warning
+DEBUG logger-debug
+INFO log-info
+CRITICAL log-error
+""", output.decode("utf-8"))
+
