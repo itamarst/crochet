@@ -10,12 +10,16 @@ regular blocking code. Some use cases include:
 * Port blocking code to Twisted more easily, by keeping a backwards
   compatibility layer.
 * Allow normal Twisted programs that use threads to interact with Twisted more
-  cleanly from their threaded parts. For example this can be useful when using
+  cleanly from their threaded parts. For example, this can be useful when using
   Twisted as a `WSGI container`_.
 
 .. _WSGI container: https://twistedmatrix.com/documents/current/web/howto/web-in-60/wsgi.html
 
 Crochet is maintained by Itamar Turner-Trauring.
+
+You can install Crochet by running::
+
+  $ pip install crochet
 
 Downloads are available on `PyPI`_.
 
@@ -28,27 +32,28 @@ Bugs and feature requests should be filed at the project `Github page`_.
 .. _PyPI: https://pypi.python.org/pypi/crochet
 
 
-Features
-========
-
-Crochet aims for 100% unit test coverage, and supports Python 2.7, 3.4 and 3.5 as well as PyPy.
+API and Features
+================
 
 .. image:: https://travis-ci.org/itamarst/crochet.png?branch=master
            :target: http://travis-ci.org/itamarst/crochet
            :alt: Build Status
 
-Crochet provides the following general features:
+Crochet supports Python 2.7, 3.4 and 3.5 as well as PyPy.
+
+Crochet provides the following basic APIs:
 
 * Allow blocking code to call into Twisted and block until results are available
   or a timeout is hit, using the ``crochet.wait_for`` decorator.
 * A lower-level API (``crochet.run_in_reactor``) allows blocking code to run
-  code "in the background" in the Twisted thread, with ability to repeatedly
+  code "in the background" in the Twisted thread, with the ability to repeatedly
   check if it's done.
 
-Additionally Crochet can:
+Crochet will do the following on your behalf in order to enable these APIs:
 
 * Transparently start Twisted's reactor in a thread it manages.
-* The reactor shuts down automatically when the process' main thread finishes.
-* Hooks up Twisted's log system to the Python standard library ``logging``
+* Shut down the reactor automatically when the process' main thread finishes.
+* Hook up Twisted's log system to the Python standard library ``logging``
   framework. Unlike Twisted's built-in ``logging`` bridge, this includes
   support for blocking `Handler` instances.
+
