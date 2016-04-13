@@ -101,6 +101,30 @@ class ResultRegistryTests(TestCase):
         self.assertTrue(ResultRegistry.register.synchronized)
 
 
+def append_in_thread(l, f, *args, **kwargs):
+    """
+    Call a function in a thread, append its result to the given list.
+
+    Only return once the thread has actually started.
+
+    Will return a threading.Event that will be set when the action is done.
+    """
+    started = threading.Event()
+    done = threading.Event()
+    def go():
+        started.set()
+        try:
+            result = f(*args, **kwargs)
+        except Exception as e:
+            l.extend([False, e])
+        else:
+            l.extend([True, result])
+        done.set()
+    threading.Thread(target=go).start()
+    started.wait()
+    return done
+
+
 class EventualResultTests(TestCase):
     """
     Tests for EventualResult.
@@ -122,12 +146,14 @@ class EventualResultTests(TestCase):
         the Deferred is fired after wait() is called.
         """
         d = Deferred()
-        def fireSoon():
-            import time; time.sleep(0.01)
-            d.callback(345)
-        threading.Thread(target=fireSoon).start()
         dr = EventualResult(d, None)
-        self.assertEqual(dr.wait(), 345)
+        l = []
+        done = append_in_thread(l, dr.wait)
+        time.sleep(0.1)
+        # At this point dr.wait() should have started:
+        d.callback(345)
+        done.wait()
+        self.assertEqual(l, [True, 345])
 
     def test_success_result_twice(self):
         """
@@ -150,12 +176,13 @@ class EventualResultTests(TestCase):
         where the Deferred is fired after wait() is called.
         """
         d = Deferred()
-        def fireSoon():
-            time.sleep(0.01)
-            d.errback(RuntimeError())
-        threading.Thread(target=fireSoon).start()
         dr = EventualResult(d, None)
-        self.assertRaises(RuntimeError, dr.wait)
+        l = []
+        done = append_in_thread(l, dr.wait)
+        time.sleep(0.1)
+        d.errback(RuntimeError())
+        done.wait()
+        self.assertEqual((l[0], l[1].__class__), (False, RuntimeError))
 
     def test_failure_result_twice(self):
         """
