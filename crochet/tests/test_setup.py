@@ -8,8 +8,9 @@ import threading
 import warnings
 import subprocess
 import sys
+from unittest import SkipTest, TestCase
 
-from twisted.trial.unittest import TestCase
+import twisted
 from twisted.python.log import PythonLoggingObserver
 from twisted.python import log
 from twisted.python.runtime import platform
@@ -126,7 +127,7 @@ class SetupTests(TestCase):
             expected = PythonLoggingObserver.emit
             # Python 3 and 2 differ in value of __func__:
             expected = getattr(expected, "__func__", expected)
-            self.assertIdentical(wrapped.__func__, expected)
+            self.assertIs(wrapped.__func__, expected)
             self.assertEqual(setStdout, False)
             self.assertTrue(reactor.in_call_from_thread)
             logging.append(observer)
@@ -163,7 +164,7 @@ class SetupTests(TestCase):
         loop = EventLoop(lambda: reactor, lambda f, *g: None,
                          fakeStartLoggingWithObserver)
         loop.setup()
-        self.assertIdentical(warnings.showwarning, original)
+        self.assertIs(warnings.showwarning, original)
 
     def test_start_watchdog_thread(self):
         """
@@ -254,15 +255,14 @@ class ProcessSetupTests(TestCase):
 
     def test_non_posix(self):
         """
-        On POSIX systems, setup() does not install a LoopingCall.
+        On non-POSIX systems, setup() does not install a LoopingCall.
         """
+        if platform.type == "posix":
+            raise SkipTest("This test is for non-POSIX systems.")
         reactor = FakeReactor()
         s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
         self.assertFalse(reactor.getDelayedCalls())
-
-    if platform.type == "posix":
-        test_non_posix.skip = "SIGCHLD is a POSIX-specific issue"
 
 
 class ThreadLogObserverTest(TestCase):
