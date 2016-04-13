@@ -1,15 +1,9 @@
-import os
-
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
 import versioneer
-versioneer.versionfile_source = 'crochet/_version.py'
-versioneer.versionfile_build = 'crochet/_version.py'
-versioneer.tag_prefix = '' # tags are like 1.2.0
-versioneer.parentdir_prefix = 'crochet-'
 
 
 def read(path):
@@ -25,10 +19,9 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
@@ -37,7 +30,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     description="Use Twisted anywhere!",
     install_requires=[
-        "Twisted>=11.1",
+        "Twisted>=15.0",
     ],
     keywords="twisted threading",
     license="MIT",
