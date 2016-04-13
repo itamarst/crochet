@@ -2,19 +2,13 @@ language: python
 
 env:
   - TWISTED=Twisted==15.0 RUNTESTS=trial
-  - TWISTED=Twisted==15.1 RUNTESTS=trial
+  - TWISTED=Twisted RUNTESTS=trial
 
 python:
-  - 2.6
   - 2.7
+  - 3.4
+  - 3.5
   - pypy
-
-matrix:
-  include:
-    - python: 3.4
-      env: TWISTED=Twisted==16.1 RUNTESTS="python -m unittest discover"
-    - python: 3.5
-      env: TWISTED=Twisted==16.1 RUNTESTS="python -m unittest discover"
 
 install:
   - python setup.py --version
