@@ -55,9 +55,18 @@ class FakeReactor(Clock):
 
 class FakeThread:
     started = False
+    stopped = False
 
     def start(self):
         self.started = True
+
+    def stop(self):
+        self.stopped = True
+
+    def join(self):
+        # Can only join a thread that's been marked for stoppage
+        if self.stopped:
+            return True
 
 
 class SetupTests(TestCase):
@@ -67,10 +76,10 @@ class SetupTests(TestCase):
 
     def test_first_runs_reactor(self):
         """
-        With it first call, setup() runs the reactor in a thread.
+        With its first call, setup() runs the reactor in a thread.
         """
         reactor = FakeReactor()
-        EventLoop(lambda: reactor, lambda f, *g: None).setup()
+        EventLoop(lambda x: reactor, lambda f, *g: None).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
         self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
@@ -81,7 +90,7 @@ class SetupTests(TestCase):
         The second call to setup() does nothing.
         """
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *g: None)
+        s = EventLoop(lambda x: reactor, lambda f, *g: None)
         s.setup()
         s.setup()
         reactor.started.wait(5)
@@ -94,7 +103,7 @@ class SetupTests(TestCase):
         """
         atexit = []
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *args: atexit.append((f, args)))
+        s = EventLoop(lambda x: reactor, lambda f, *args: atexit.append((f, args)))
         s.setup()
         self.assertEqual(len(atexit), 2)
         self.assertFalse(reactor.stopping)
@@ -114,6 +123,7 @@ class SetupTests(TestCase):
         """
         self.assertTrue(EventLoop.setup.synchronized)
         self.assertTrue(EventLoop.no_setup.synchronized)
+        self.assertTrue(EventLoop.destroy.synchronized)
 
     def test_logging(self):
         """
@@ -133,7 +143,7 @@ class SetupTests(TestCase):
             logging.append(observer)
 
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+        loop = EventLoop(lambda x: reactor, lambda f, *g: None,
                          fakeStartLoggingWithObserver)
         loop.setup()
         self.assertTrue(logging)
@@ -145,7 +155,7 @@ class SetupTests(TestCase):
         """
         observers = []
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *arg: None,
+        s = EventLoop(lambda x: reactor, lambda f, *arg: None,
                       lambda observer, setStdout=1: observers.append(observer))
         s.setup()
         self.addCleanup(observers[0].stop)
@@ -161,7 +171,7 @@ class SetupTests(TestCase):
             self.addCleanup(observer.stop)
         original = warnings.showwarning
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *g: None,
+        loop = EventLoop(lambda x: reactor, lambda f, *g: None,
                          fakeStartLoggingWithObserver)
         loop.setup()
         self.assertIs(warnings.showwarning, original)
@@ -172,8 +182,8 @@ class SetupTests(TestCase):
         """
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda *args: None,
-                         watchdog_thread=thread)
+        loop = EventLoop(lambda x: reactor, lambda *args: None,
+                         get_watchdog_thread=lambda: thread)
         loop.setup()
         self.assertTrue(thread.started)
 
@@ -186,9 +196,9 @@ class SetupTests(TestCase):
         atexit = []
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *arg: atexit.append(f),
+        loop = EventLoop(lambda x: reactor, lambda f, *arg: atexit.append(f),
                          lambda observer, *a, **kw: observers.append(observer),
-                         watchdog_thread=thread)
+                         get_watchdog_thread=lambda: thread)
 
         loop.no_setup()
         loop.setup()
@@ -202,7 +212,7 @@ class SetupTests(TestCase):
         If called after setup(), no_setup() throws an exception.
         """
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *g: None)
+        s = EventLoop(lambda x: reactor, lambda f, *g: None)
         s.setup()
         self.assertRaises(RuntimeError, s.no_setup)
 
@@ -212,7 +222,7 @@ class SetupTests(TestCase):
         setup().
         """
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *g: None)
+        s = EventLoop(lambda x: reactor, lambda f, *g: None)
         s.setup()
         self.assertEqual(reactor.events,
                          [("before", "shutdown", s._registry.stop)])
@@ -224,10 +234,35 @@ class SetupTests(TestCase):
         setup().
         """
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *g: None)
+        s = EventLoop(lambda x: reactor, lambda f, *g: None)
         s.no_setup()
         self.assertEqual(reactor.events,
                          [("before", "shutdown", s._registry.stop)])
+
+    def test_no_destroy_if_not_setup(self):
+        """
+        If called before setup() or no_setup(), destroy throws an exception.
+        """
+        reactor = FakeReactor()
+        s = EventLoop(lambda x: reactor, lambda f, *g: None)
+        self.assertRaises(RuntimeError, s.destroy)
+
+    def test_destroy_stops_threads(self):
+        observers = []
+        reactor = FakeReactor()
+        watchdog = FakeThread()
+        s = EventLoop(lambda x: reactor, lambda f, *arg: None,
+                      lambda observer, setStdout=1: observers.append(observer),
+                      lambda: watchdog)
+        s.setup()
+        self.assertTrue(watchdog.started)
+        # The eventloop starting logging in a separate thread
+        self.assertTrue(s._observer._thread.is_alive())
+        self.assertEqual(reactor.runs, 1)
+        s.destroy()
+        self.assertTrue(watchdog.stop)
+        self.assertFalse(s._observer._thread.is_alive())
+        self.assertTrue(reactor.stopping)
 
 
 class ProcessSetupTests(TestCase):
@@ -241,7 +276,7 @@ class ProcessSetupTests(TestCase):
         """
         reactor = FakeReactor()
         reaps = []
-        s = EventLoop(lambda: reactor, lambda f, *g: None,
+        s = EventLoop(lambda x: reactor, lambda f, *g: None,
                       reapAllProcesses=lambda: reaps.append(1))
         s.setup()
         reactor.advance(0.1)
@@ -350,14 +385,14 @@ l.addHandler(handler)
 l.setLevel(DEBUG)
 
 import crochet
-crochet.setup()
+crochet.setup(use_global_reactor=%s)
 from twisted.python import log
 %s
 log.msg("log-info")
 log.msg("log-error", isError=True)
 """
 
-class LoggingTests(TestCase):
+class LoggingMixin(object):
     """
     End-to-end tests for Twisted->stdlib logging bridge.
     """
@@ -371,7 +406,7 @@ class LoggingTests(TestCase):
         if tuple(map(int, twisted.__version__.split("."))) >= (15, 2, 0):
             raise SkipTest("This test is for Twisted < 15.2.")
 
-        program = LOGGING_PROGRAM % ("",)
+        program = LOGGING_PROGRAM % (self.GLOBAL_REACTOR, "",)
         output = subprocess.check_output([sys.executable, "-u", "-c", program],
                                          cwd=crochet_directory)
         self.assertTrue(output.startswith("""\
@@ -388,7 +423,7 @@ ERROR log-error
         if tuple(map(int, twisted.__version__.split("."))) < (15, 2, 0):
             raise SkipTest("This test is for Twisted 15.2 and later.")
 
-        program = LOGGING_PROGRAM % ("""\
+        program = LOGGING_PROGRAM % (self.GLOBAL_REACTOR, """\
 from twisted.logger import Logger
 l2 = Logger()
 l2.info("logger-info")
@@ -407,3 +442,10 @@ INFO log-info
 CRITICAL log-error
 """, output.decode("utf-8"))
 
+
+class LoggingTestsGlobalReactor(LoggingMixin, TestCase):
+    GLOBAL_REACTOR = True
+
+
+class LoggingTestsLocalReactor(LoggingMixin, TestCase):
+    GLOBAL_REACTOR = False

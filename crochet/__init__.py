@@ -1,42 +1,24 @@
 """
 Crochet: Use Twisted Anywhere!
 """
-
 from __future__ import absolute_import
 
-import sys
-
 from twisted.python.log import startLoggingWithObserver
-from twisted.python.runtime import platform
-if platform.type == "posix":
-    try:
-        from twisted.internet.process import reapAllProcesses
-    except (SyntaxError, ImportError):
-        if sys.version_info < (3, 3, 0):
-            raise
-        else:
-            # Process support is still not ported to Python 3 on some versions
-            # of Twisted.
-            reapAllProcesses = lambda: None
-else:
-    # waitpid() is only necessary on POSIX:
-    reapAllProcesses = lambda: None
 
-from ._shutdown import _watchdog, register
+from ._shutdown import get_watchdog_thread, register
 from ._eventloop import (EventualResult, TimeoutError, EventLoop, _store,
                          ReactorStopped)
+from ._util import get_twisted_reactor, reapAllProcesses
 from ._version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions
 
-
-def _importReactor():
-    from twisted.internet import reactor
-    return reactor
-_main = EventLoop(_importReactor, register, startLoggingWithObserver,
-                  _watchdog, reapAllProcesses)
+_main = EventLoop(get_twisted_reactor, register, startLoggingWithObserver,
+                  get_watchdog_thread, reapAllProcesses)
 setup = _main.setup
 no_setup = _main.no_setup
+destroy = _main.destroy
 run_in_reactor = _main.run_in_reactor
 wait_for = _main.wait_for
 retrieve_result = _store.retrieve
@@ -49,7 +31,7 @@ DeferredResult = EventualResult
 wait_for_reactor = _main.wait_for_reactor
 
 __all__ = ["setup", "run_in_reactor", "EventualResult", "TimeoutError",
-           "retrieve_result", "no_setup", "wait_for",
+           "destroy", "retrieve_result", "no_setup", "wait_for",
            "ReactorStopped", "__version__",
            # Backwards compatibility:
            "DeferredResult", "in_reactor", "wait_for_reactor",

@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from twisted.trial.unittest import TestCase
 
 from .._util import synchronized
+from .._util import get_twisted_reactor
 
 
 class FakeLock(object):
@@ -67,3 +68,12 @@ class SynchronizedTests(TestCase):
         A method wrapped with @synchronized is marked as synchronized.
         """
         self.assertEqual(Lockable.check.synchronized, True)
+
+
+class GetTwistedReactorTests(TestCase):
+    """
+    Tests for choosing the right twisted reactor based on different platforms
+    """
+    def test_use_global_reactor(self):
+        from twisted.internet import reactor
+        self.assertEqual(get_twisted_reactor(use_global=True), reactor)

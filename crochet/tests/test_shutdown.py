@@ -10,8 +10,8 @@ import time
 
 from twisted.trial.unittest import TestCase
 
-from crochet._shutdown import (Watchdog, FunctionRegistry, _watchdog, register,
-                               _registry)
+from crochet._shutdown import (Watchdog, FunctionRegistry, get_watchdog_thread,
+                               register, _registry)
 from ..tests import crochet_directory
 
 
@@ -27,7 +27,8 @@ class ShutdownTests(TestCase):
         program = """\
 import threading, sys
 
-from crochet._shutdown import register, _watchdog
+from crochet._shutdown import register, get_watchdog_thread
+_watchdog = get_watchdog_thread()
 _watchdog.start()
 
 end = False
@@ -84,6 +85,7 @@ sys.exit()
         The module exposes a shutdown thread that will call a global
         registry's run(), and a register function tied to the global registry.
         """
+        _watchdog = get_watchdog_thread()
         self.assertIsInstance(_registry, FunctionRegistry)
         self.assertEqual(register, _registry.register)
         self.assertIsInstance(_watchdog, Watchdog)

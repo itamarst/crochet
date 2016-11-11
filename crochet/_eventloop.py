@@ -55,6 +55,22 @@ class ReactorStopped(Exception):
     """
 
 
+class ReactorThread(threading.Thread):
+    """
+    A simple thread to encapsulate the twisted reactor. Offers APIs to
+    start and stop the reactor.
+    """
+    def __init__(self, reactor):
+        threading.Thread.__init__(self, name="CrochetReactor")
+        self._reactor = reactor
+
+    def run(self):
+        self._reactor.run(installSignalHandlers=False)
+
+    def stop(self):
+        self._reactor.callFromThread(self._reactor.stop)
+
+
 class ResultRegistry(object):
     """
     Keep track of EventualResults.
@@ -294,6 +310,12 @@ class ThreadLogObserver(object):
         """
         self._logWritingReactor.callFromThread(self._logWritingReactor.stop)
 
+    def join(self):
+        """
+        Pass through joins to the observer's reactor thread.
+        """
+        return self._thread.join()
+
     def __call__(self, msg):
         """
         A log observer that writes to a queue.
@@ -307,24 +329,29 @@ class EventLoop(object):
     """
     def __init__(self, reactorFactory, atexit_register,
                  startLoggingWithObserver=None,
-                 watchdog_thread=None,
+                 get_watchdog_thread=None,
                  reapAllProcesses=None):
         """
         reactorFactory: Zero-argument callable that returns a reactor.
         atexit_register: atexit.register, or look-alike.
         startLoggingWithObserver: Either None, or
             twisted.python.log.startLoggingWithObserver or lookalike.
-        watchdog_thread: crochet._shutdown.Watchdog instance, or None.
+        get_watchdog_thread: Function to return a crochet._shutdown.Watchdog
+            instance, or None.
         reapAllProcesses: twisted.internet.process.reapAllProcesses or
             lookalike.
         """
         self._reactorFactory = reactorFactory
         self._atexit_register = atexit_register
         self._startLoggingWithObserver = startLoggingWithObserver
-        self._started = False
-        self._lock = threading.Lock()
-        self._watchdog_thread = watchdog_thread
+        self._get_watchdog_thread = get_watchdog_thread
         self._reapAllProcesses = reapAllProcesses
+
+        # Runtime state
+        self._lock = threading.Lock()
+        self._started = False
+        self._reactor_thread = None
+        self._observer = None
 
     def _startReapingProcesses(self):
         """
@@ -334,12 +361,13 @@ class EventLoop(object):
         lc.clock = self._reactor
         lc.start(0.1, False)
 
-    def _common_setup(self):
+    def _common_setup(self, use_global_reactor=True):
         """
         The minimal amount of setup done by both setup() and no_setup().
         """
+        self._use_global_reactor = use_global_reactor
         self._started = True
-        self._reactor = self._reactorFactory()
+        self._reactor = self._reactorFactory(use_global_reactor)
         self._registry = ResultRegistry(self._reactor)
         # We want to unblock EventualResult regardless of how the reactor is
         # run, so we always register this:
@@ -347,7 +375,7 @@ class EventLoop(object):
             "before", "shutdown", self._registry.stop)
 
     @synchronized
-    def setup(self):
+    def setup(self, use_global_reactor=True):
         """
         Initialize the crochet library.
 
@@ -356,37 +384,79 @@ class EventLoop(object):
 
         This must be called at least once before the library can be used, and
         can be called multiple times.
+
+        If `use_global_reactor` is True, then the global Twisted reactor
+        object, `from twisted.internet import reactor` is used. If False,
+        then crochet instantiates its own version of Twisted's reactor
+        (see `crochet._util.get_twisted_reactor`). This means that external
+        programs cannot interact with crochet's reactor except throught
+        crochet APIs.
         """
         if self._started:
             return
-        self._common_setup()
+        self._common_setup(use_global_reactor=use_global_reactor)
         if platform.type == "posix":
             self._reactor.callFromThread(self._startReapingProcesses)
         if self._startLoggingWithObserver:
-            observer = ThreadLogObserver(PythonLoggingObserver().emit)
+            self._observer = ThreadLogObserver(PythonLoggingObserver().emit)
             def start():
                 # Twisted is going to override warnings.showwarning; let's
                 # make sure that has no effect:
                 from twisted.python import log
                 original = log.showwarning
                 log.showwarning = warnings.showwarning
-                self._startLoggingWithObserver(observer, False)
+                self._startLoggingWithObserver(self._observer, False)
                 log.showwarning = original
+
             self._reactor.callFromThread(start)
 
             # We only want to stop the logging thread once the reactor has
             # shut down:
             self._reactor.addSystemEventTrigger("after", "shutdown",
-                                                observer.stop)
-        t = threading.Thread(
-            target=lambda: self._reactor.run(installSignalHandlers=False),
-            name="CrochetReactor")
-        t.start()
+                                                self._observer.stop)
+        self._reactor_thread = ReactorThread(self._reactor)
+        self._reactor_thread.start()
+
         self._atexit_register(self._reactor.callFromThread,
                               self._reactor.stop)
         self._atexit_register(_store.log_errors)
-        if self._watchdog_thread is not None:
+        if self._get_watchdog_thread is not None:
+            self._watchdog_thread = self._get_watchdog_thread()
             self._watchdog_thread.start()
+
+    @synchronized
+    def destroy(self):
+        """
+        Basically undoes what the `setup` function does. This is meant to
+        make it so that crochet can be used safely in a forking context.
+        I.e. - setup crochet, use crochet APIs, then, right before calling
+        `fork`, call `crochet.destroy()` to avoid problems reusing the crochet
+        singletons postfork. Postfork, just re-call `crochet.setup()` before
+        you want to start using crochet APIs.
+        """
+        if not self._started:
+            raise RuntimeError("destroy() is meant to be called only after "
+                               "setup() or no_setup() to reset crochet's "
+                               "global state.")
+        if not self._use_global_reactor:
+            raise RuntimeError("Cannot call destroy if using global reactor. "
+                               "Call setup() with use_global_reactor=False.")
+
+        possible_threads = (
+            self._watchdog_thread,
+            self._reactor_thread,
+            self._observer,
+        )
+
+        for thread in possible_threads:
+            if thread is not None:
+                thread.stop()
+
+        for thread in possible_threads:
+            if thread is not None:
+                thread.join()
+
+        self._started = False
 
     @synchronized
     def no_setup(self):

@@ -19,22 +19,10 @@ from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 from twisted.python import threadable
 from twisted.python.runtime import platform
-if platform.type == "posix":
-    try:
-        from twisted.internet.process import reapAllProcesses
-    except (SyntaxError, ImportError):
-        if sys.version_info < (3, 3, 0):
-            raise
-        else:
-            # Process support is still not ported to Python 3 on some versions
-            # of Twisted.
-            reapAllProcesses = None
-else:
-    # waitpid() is only necessary on POSIX:
-    reapAllProcesses = None
 
 from .._eventloop import (EventLoop, EventualResult, TimeoutError,
                           ResultRegistry, ReactorStopped)
+from .._util import reapAllProcesses
 from .test_setup import FakeReactor
 from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
                 run_in_reactor, wait_for_reactor, wait_for)
@@ -325,7 +313,7 @@ class EventualResultTests(TestCase):
         excs = self.flushLoggedErrors(ZeroDivisionError)
         self.assertEqual(len(excs), 1)
 
-    def test_control_c_is_possible(self):
+    def _test_ctrl_c(self, use_global_reactor):
         """
         If you're wait()ing on an EventualResult in main thread, make sure the
         KeyboardInterrupt happens in timely manner.
@@ -333,17 +321,16 @@ class EventualResultTests(TestCase):
         program = """\
 import os, threading, signal, time, sys
 import crochet
-crochet.setup()
+crochet.setup(use_global_reactor=%s)
 from twisted.internet.defer import Deferred
 
 if sys.platform.startswith('win'):
     signal.signal(signal.SIGBREAK, signal.default_int_handler)
-    sig_int=signal.CTRL_BREAK_EVENT
-    sig_kill=signal.SIGTERM
+    sig_int = signal.CTRL_BREAK_EVENT
+    sig_kill = signal.SIGTERM
 else:
-    sig_int=signal.SIGINT
-    sig_kill=signal.SIGKILL
-
+    sig_int = signal.SIGINT
+    sig_kill = signal.SIGKILL
 
 def interrupt():
     time.sleep(0.1) # Make sure we've hit wait()
@@ -365,7 +352,7 @@ try:
     e.wait()
 except KeyboardInterrupt:
     sys.exit(23)
-"""
+""" % use_global_reactor
         kw = { 'cwd': crochet_directory }
         # on Windows the only way to interrupt a subprocess reliably is to
         # create a new process group:
@@ -374,6 +361,12 @@ except KeyboardInterrupt:
             kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
         process = subprocess.Popen([sys.executable, "-c", program], **kw)
         self.assertEqual(process.wait(), 23)
+
+    def test_control_c_is_possible(self):
+        self._test_ctrl_c(use_global_reactor=True)
+
+    def test_control_c_is_possible_local_reactor(self):
+        self._test_ctrl_c(use_global_reactor=False)
 
     def test_connect_deferred(self):
         """
@@ -568,7 +561,7 @@ class InReactorTests(TestCase):
         The function decorated with in_reactor has the same name as the
         original function.
         """
-        c = EventLoop(lambda: FakeReactor(), lambda f, g: None)
+        c = EventLoop(lambda x: FakeReactor(), lambda f, g: None)
 
         @c.in_reactor
         def some_name(reactor):
@@ -581,7 +574,7 @@ class InReactorTests(TestCase):
         thread, and takes the reactor as its first argument.
         """
         myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c = EventLoop(lambda x: myreactor, lambda f, g: None)
         c.no_setup()
 
         calls = []
@@ -610,7 +603,7 @@ class InReactorTests(TestCase):
             return wrapper
 
         myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c = EventLoop(lambda x: myreactor, lambda f, g: None)
         c.no_setup()
         c.run_in_reactor = fake_run_in_reactor
 
@@ -634,7 +627,7 @@ class RunInReactorTests(TestCase):
         The function decorated with run_in_reactor has the same name as the
         original function.
         """
-        c = EventLoop(lambda: FakeReactor(), lambda f, g: None)
+        c = EventLoop(lambda x: FakeReactor(), lambda f, g: None)
 
         @c.run_in_reactor
         def some_name():
@@ -647,7 +640,7 @@ class RunInReactorTests(TestCase):
         thread.
         """
         myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c = EventLoop(lambda x: myreactor, lambda f, g: None)
         c.no_setup()
         calls = []
 
@@ -665,7 +658,7 @@ class RunInReactorTests(TestCase):
         argument.
         """
         myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c = EventLoop(lambda x: myreactor, lambda f, g: None)
         c.no_setup()
 
         @c.run_in_reactor
@@ -710,7 +703,7 @@ class RunInReactorTests(TestCase):
         EventualResult hooked up to a Deferred wrapping the exception.
         """
         myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c = EventLoop(lambda x: myreactor, lambda f, g: None)
         c.no_setup()
 
         @c.run_in_reactor
@@ -726,7 +719,7 @@ class RunInReactorTests(TestCase):
         @run_in_reactor registers the EventualResult in the ResultRegistry.
         """
         myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c = EventLoop(lambda x: myreactor, lambda f, g: None)
         c.no_setup()
 
         @c.run_in_reactor
@@ -741,7 +734,7 @@ class RunInReactorTests(TestCase):
         The function wrapped by @run_in_reactor can be accessed via the
         `wrapped_function` attribute.
         """
-        c = EventLoop(lambda: None, lambda f, g: None)
+        c = EventLoop(lambda x: None, lambda f, g: None)
         def func():
             pass
         wrapper = c.run_in_reactor(func)
@@ -752,9 +745,10 @@ class WaitTestsMixin(object):
     """
     Tests mixin for the wait_for_reactor/wait_for decorators.
     """
+
     def setUp(self):
         self.reactor = FakeReactor()
-        self.eventloop = EventLoop(lambda: self.reactor, lambda f, g: None)
+        self.eventloop = EventLoop(lambda x: self.reactor, lambda f, g: None)
         self.eventloop.no_setup()
 
     def decorator(self):
@@ -875,7 +869,7 @@ class WaitTestsMixin(object):
         raiser = self.make_wrapped_function()
         self.assertRaises(ZeroDivisionError, raiser, ZeroDivisionError())
 
-    def test_control_c_is_possible(self):
+    def _test_ctrl_c(self, use_global_reactor):
         """
         A call to a decorated function responds to a Ctrl-C (i.e. with a
         KeyboardInterrupt) in a timely manner.
@@ -883,16 +877,16 @@ class WaitTestsMixin(object):
         program = """\
 import os, threading, signal, time, sys
 import crochet
-crochet.setup()
+crochet.setup(use_global_reactor=%s)
 from twisted.internet.defer import Deferred
 
 if sys.platform.startswith('win'):
     signal.signal(signal.SIGBREAK, signal.default_int_handler)
-    sig_int=signal.CTRL_BREAK_EVENT
-    sig_kill=signal.SIGTERM
+    sig_int = signal.CTRL_BREAK_EVENT
+    sig_kill = signal.SIGTERM
 else:
-    sig_int=signal.SIGINT
-    sig_kill=signal.SIGKILL
+    sig_int = signal.SIGINT
+    sig_kill = signal.SIGKILL
 
 
 def interrupt():
@@ -914,12 +908,18 @@ try:
     wait()
 except KeyboardInterrupt:
     sys.exit(23)
-""" % (self.DECORATOR_CALL,)
+""" % (use_global_reactor, self.DECORATOR_CALL)
         kw = { 'cwd': crochet_directory }
         if platform.type.startswith('win'):
             kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
         process = subprocess.Popen([sys.executable, "-c", program], **kw)
         self.assertEqual(process.wait(), 23)
+
+    def test_control_c_is_possible(self):
+        self._test_ctrl_c(use_global_reactor=True)
+
+    def test_control_c_is_possible_with_local_reactor(self):
+        self._test_ctrl_c(use_global_reactor=False)
 
     def test_reactor_stop_unblocks(self):
         """
@@ -1007,8 +1007,9 @@ class PublicAPITests(TestCase):
         Creating an EventLoop object, as is done in crochet.__init__, does not
         call any methods on the objects it is created with.
         """
-        c = EventLoop(lambda: None, lambda f, g: 1/0, lambda *args: 1/0,
-                      watchdog_thread=object(), reapAllProcesses=lambda: 1/0)
+        c = EventLoop(lambda x: None, lambda f, g: 1/0, lambda *args: 1/0,
+                      get_watchdog_thread=lambda: object(),
+                      reapAllProcesses=lambda: 1/0)
         del c
 
     def test_eventloop_api(self):
@@ -1028,7 +1029,8 @@ class PublicAPITests(TestCase):
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(_main._startLoggingWithObserver,
                              startLoggingWithObserver)
-        self.assertIdentical(_main._watchdog_thread, _shutdown._watchdog)
+        self.assertIdentical(_main._get_watchdog_thread,
+                             _shutdown.get_watchdog_thread)
 
     def test_eventloop_api_reactor(self):
         """
