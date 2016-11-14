@@ -438,7 +438,7 @@ class EventLoop(object):
             raise RuntimeError("destroy() is meant to be called only after "
                                "setup() or no_setup() to reset crochet's "
                                "global state.")
-        if not self._use_global_reactor:
+        if self._use_global_reactor:
             raise RuntimeError("Cannot call destroy if using global reactor. "
                                "Call setup() with use_global_reactor=False.")
 
