@@ -27,11 +27,14 @@ retrieve_result = _store.retrieve
 in_reactor = _main.in_reactor
 DeferredResult = EventualResult
 
+def get_reactor():
+    return _main._reactor
+
 # Backwards compatibility with 1.1.0 and earlier:
 wait_for_reactor = _main.wait_for_reactor
 
 __all__ = ["setup", "run_in_reactor", "EventualResult", "TimeoutError",
-           "destroy", "retrieve_result", "no_setup", "wait_for",
+           "destroy", "get_reactor", "retrieve_result", "no_setup", "wait_for",
            "ReactorStopped", "__version__",
            # Backwards compatibility:
            "DeferredResult", "in_reactor", "wait_for_reactor",
