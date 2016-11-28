@@ -29,14 +29,11 @@ def synchronized(method):
 
 def get_twisted_reactor(use_global):
     """
-    When you do `from twisted.internet import reactor`, twisted "installs" a
-    reactor. All this really means it that it looks at your platform to
-    determine which reactor (epoll, select, or poll) you should use, creates
-    a singleton of that type of reactor, and puts it in sys.modules as
-    `twisted.internet.reactor`.
+    If `use_global=False`, this recreates logic in `twisted.internet.default`
+    to choose between reactors, but bypasses "installing" the reactor as a
+    global singleton.
 
-    This recreates logic in `twisted.internet.default` to choose between
-    reactors, but bypasses "installing" the reactor as a global singleton.
+    If `use_global=True`, this returns the globally installed twisted reactor.
     """
     if use_global:
         from twisted.internet import reactor
