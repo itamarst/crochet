@@ -391,6 +391,8 @@ ERROR log-error
         program = LOGGING_PROGRAM % ("""\
 from twisted.logger import Logger
 l2 = Logger()
+import time
+time.sleep(1)  # workaround, there is race condition... somewhere
 l2.info("logger-info")
 l2.critical("logger-critical")
 l2.warn("logger-warning")
