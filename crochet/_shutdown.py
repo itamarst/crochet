@@ -22,11 +22,20 @@ class Watchdog(threading.Thread):
         threading.Thread.__init__(self, name="CrochetShutdownWatchdog")
         self._canary = canary
         self._shutdown_function = shutdown_function
+        self._signal_stop = False
 
     def run(self):
         while self._canary.is_alive():
+            if self._signal_stop:
+                return
             time.sleep(0.1)
         self._shutdown_function()
+
+    def stop(self):
+        """
+        Stop the thread without running shutdown functions.
+        """
+        self._signal_stop = True
 
 
 class FunctionRegistry(object):
@@ -53,13 +62,21 @@ class FunctionRegistry(object):
                 log.err()
 
 
-# This is... fragile. Not sure how else to do it though.
 _registry = FunctionRegistry()
-_watchdog = Watchdog(
-    [
-        t for t in threading.enumerate()
-        if isinstance(t, threading._MainThread)
-    ][0],
-    _registry.run,
-)
 register = _registry.register
+
+
+def get_watchdog_thread():
+    """
+    Returns a thread that runs registered callbacks when the main thread
+    shuts down. Callbacks are registered in a global named `_registry`.
+    """
+    # This is... fragile. Not sure how else to do it though.
+    watchdog = Watchdog(
+        [
+            t for t in threading.enumerate()
+            if isinstance(t, threading._MainThread)
+        ][0],
+        _registry.run,
+    )
+    return watchdog
