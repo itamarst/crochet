@@ -1,6 +1,18 @@
 What's New
 ==========
 
+1.7.0
+^^^^^
+
+Bug fixes:
+
+* If the Python `logging.Handler` throws an exception Crochet no longer goes into a death spiral.
+  Thanks to Michael Schlenker for the bug report.
+
+Removed features:
+
+* Versions of Twisted < 16.0 are no longer supported (i.e. no longer tested in CI.)
+
 1.6.0
 ^^^^^
 
