@@ -298,7 +298,15 @@ class ThreadLogObserver(object):
         """
         A log observer that writes to a queue.
         """
-        self._logWritingReactor.callFromThread(self._observer, msg)
+        def log():
+            try:
+                self._observer(msg)
+            except:
+                # Lower-level logging system blew up, nothing we can do, so
+                # just drop on the floor.
+                pass
+
+        self._logWritingReactor.callFromThread(log)
 
 
 class EventLoop(object):
