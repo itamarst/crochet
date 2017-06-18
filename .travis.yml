@@ -1,14 +1,16 @@
 language: python
 
 env:
-  - TWISTED=Twisted==15.0 RUNTESTS=trial
-  - TWISTED=Twisted RUNTESTS=trial
+  # Oldest supported version:
+  - TWISTED=Twisted==16.0
+  # Latest Twisted:
+  - TWISTED=Twisted
 
 python:
   - 2.7
   - 3.4
   - 3.5
-  - 3.6-dev
+  - 3.6
   - pypy
 
 install:
@@ -17,7 +19,7 @@ install:
   - python setup.py -q install
 
 script:
-  - $RUNTESTS crochet.tests
+  - trial crochet.tests
   - pyflakes crochet
 
 notifications:
