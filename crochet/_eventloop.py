@@ -269,7 +269,10 @@ class ThreadLogObserver(object):
     """
     def __init__(self, observer):
         self._observer = observer
-        if getattr(select, "poll", None):
+        if getattr(select, "epoll", None):
+            from twisted.internet.epollreactor import EPollReactor
+            reactorFactory = EPollReactor
+        elif getattr(select, "poll", None):
             from twisted.internet.pollreactor import PollReactor
             reactorFactory = PollReactor
         else:
