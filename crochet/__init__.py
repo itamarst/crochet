@@ -11,7 +11,9 @@ from twisted.python.runtime import platform
 
 from ._shutdown import _watchdog, register
 from ._eventloop import (
-    EventualResult, TimeoutError, EventLoop, _store, ReactorStopped)
+    EventualResult, EventLoop, _store, ReactorStopped
+)
+from ._eventloop import TimeoutError  # pylint: disable=redefined-builtin
 from ._version import get_versions
 
 if platform.type == "posix":

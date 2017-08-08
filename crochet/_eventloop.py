@@ -43,7 +43,7 @@ else:
             return iter(self._items)
 
 
-class TimeoutError(Exception):
+class TimeoutError(Exception):  # pylint: disable=redefined-builtin
     """
     A timeout has been hit.
     """
