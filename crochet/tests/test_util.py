@@ -11,8 +11,10 @@ from .._util import synchronized
 
 class FakeLock(object):
     locked = False
+
     def __enter__(self):
         self.locked = True
+
     def __exit__(self, type, value, traceback):
         self.locked = False
 
@@ -38,6 +40,7 @@ class SynchronizedTests(TestCase):
     """
     Tests for the synchronized decorator.
     """
+
     def test_return(self):
         """
         A method wrapped with @synchronized is called with the lock acquired,

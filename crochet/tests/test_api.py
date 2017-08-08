@@ -19,6 +19,15 @@ from twisted.internet.defer import succeed, Deferred, fail, CancelledError
 from twisted.python.failure import Failure
 from twisted.python import threadable
 from twisted.python.runtime import platform
+
+from .._eventloop import (
+    EventLoop, EventualResult, TimeoutError, ResultRegistry, ReactorStopped)
+from .test_setup import FakeReactor
+from .. import (
+    _main, setup, in_reactor, retrieve_result, _store, no_setup,
+    run_in_reactor, wait_for_reactor, wait_for)
+from ..tests import crochet_directory
+
 if platform.type == "posix":
     try:
         from twisted.internet.process import reapAllProcesses
@@ -33,24 +42,18 @@ else:
     # waitpid() is only necessary on POSIX:
     reapAllProcesses = None
 
-from .._eventloop import (EventLoop, EventualResult, TimeoutError,
-                          ResultRegistry, ReactorStopped)
-from .test_setup import FakeReactor
-from .. import (_main, setup, in_reactor, retrieve_result, _store, no_setup,
-                run_in_reactor, wait_for_reactor, wait_for)
-from ..tests import crochet_directory
-
 
 class ResultRegistryTests(TestCase):
     """
     Tests for ResultRegistry.
     """
+
     def test_stopped_registered(self):
         """
         ResultRegistery.stop() fires registered EventualResult with
         ReactorStopped.
         """
-        registry = ResultRegistry(FakeReactor())
+        registry = ResultRegistry()
         er = EventualResult(None, None)
         registry.register(er)
         registry.stop()
@@ -61,7 +64,7 @@ class ResultRegistryTests(TestCase):
         After ResultRegistery.stop() is called subsequent register() calls
         raise ReactorStopped.
         """
-        registry = ResultRegistry(FakeReactor())
+        registry = ResultRegistry()
         er = EventualResult(None, None)
         registry.stop()
         self.assertRaises(ReactorStopped, registry.register, er)
@@ -71,7 +74,7 @@ class ResultRegistryTests(TestCase):
         ResultRegistery.stop() has no impact on registered EventualResult
         which already have a result.
         """
-        registry = ResultRegistry(FakeReactor())
+        registry = ResultRegistry()
         er = EventualResult(succeed(123), None)
         registry.register(er)
         registry.stop()
@@ -84,7 +87,7 @@ class ResultRegistryTests(TestCase):
         Registering an EventualResult with a ResultRegistry does not prevent
         it from being garbage collected.
         """
-        registry = ResultRegistry(FakeReactor())
+        registry = ResultRegistry()
         er = EventualResult(None, None)
         registry.register(er)
         ref = weakref.ref(er)
@@ -111,6 +114,7 @@ def append_in_thread(l, f, *args, **kwargs):
     """
     started = threading.Event()
     done = threading.Event()
+
     def go():
         started.set()
         try:
@@ -120,6 +124,7 @@ def append_in_thread(l, f, *args, **kwargs):
         else:
             l.extend([True, result])
         done.set()
+
     threading.Thread(target=go).start()
     started.wait()
     return done
@@ -238,6 +243,7 @@ class EventualResultTests(TestCase):
         """
         reactor = FakeReactor()
         cancelled = []
+
         def error(f):
             cancelled.append(reactor.in_call_from_thread)
             cancelled.append(f)
@@ -262,7 +268,7 @@ class EventualResultTests(TestCase):
         wrapped by the EventualResult.
         """
         try:
-            1/0
+            1 / 0
         except:
             f = Failure()
         dr = EventualResult(fail(f), None)
@@ -366,7 +372,7 @@ try:
 except KeyboardInterrupt:
     sys.exit(23)
 """
-        kw = { 'cwd': crochet_directory }
+        kw = {'cwd': crochet_directory}
         # on Windows the only way to interrupt a subprocess reliably is to
         # create a new process group:
         # http://docs.python.org/2/library/subprocess.html#subprocess.CREATE_NEW_PROCESS_GROUP
@@ -481,8 +487,9 @@ except CancelledError:
 else:
     sys.exit(3)
 """
-        process = subprocess.Popen([sys.executable, "-c", program],
-                                   cwd=crochet_directory,)
+        process = subprocess.Popen(
+            [sys.executable, "-c", program],
+            cwd=crochet_directory, )
         self.assertEqual(process.wait(), 23)
 
     def test_noWaitingDuringImport(self):
@@ -497,15 +504,18 @@ else:
         """
         if sys.version_info[0] > 2:
             from unittest import SkipTest
-            raise SkipTest("This test is too fragile (and insufficient) on "
-                           "Python 3 - see "
-                           "https://github.com/itamarst/crochet/issues/43")
+            raise SkipTest(
+                "This test is too fragile (and insufficient) on "
+                "Python 3 - see "
+                "https://github.com/itamarst/crochet/issues/43")
         directory = tempfile.mktemp()
         os.mkdir(directory)
         sys.path.append(directory)
         self.addCleanup(sys.path.remove, directory)
-        with open(os.path.join(directory, "shouldbeunimportable.py"), "w") as f:
-            f.write("""\
+        with open(os.path.join(directory, "shouldbeunimportable.py"),
+                  "w") as f:
+            f.write(
+                """\
 from crochet import EventualResult
 from twisted.internet.defer import Deferred
 
@@ -573,6 +583,7 @@ class InReactorTests(TestCase):
         @c.in_reactor
         def some_name(reactor):
             pass
+
         self.assertEqual(some_name.__name__, "some_name")
 
     def test_in_reactor_thread(self):
@@ -607,13 +618,13 @@ class InReactorTests(TestCase):
                 result = function(*args, **kwargs)
                 wrapped[0] = False
                 return result
+
             return wrapper
 
         myreactor = FakeReactor()
         c = EventLoop(lambda: myreactor, lambda f, g: None)
         c.no_setup()
         c.run_in_reactor = fake_run_in_reactor
-
 
         @c.in_reactor
         def func(reactor):
@@ -629,6 +640,7 @@ class RunInReactorTests(TestCase):
     """
     Tests for the run_in_reactor decorator.
     """
+
     def test_name(self):
         """
         The function decorated with run_in_reactor has the same name as the
@@ -639,6 +651,7 @@ class RunInReactorTests(TestCase):
         @c.run_in_reactor
         def some_name():
             pass
+
         self.assertEqual(some_name.__name__, "some_name")
 
     def test_run_in_reactor_thread(self):
@@ -671,6 +684,7 @@ class RunInReactorTests(TestCase):
         @c.run_in_reactor
         def passthrough(argument):
             return argument
+
         return passthrough
 
     def test_deferred_success_result(self):
@@ -715,7 +729,7 @@ class RunInReactorTests(TestCase):
 
         @c.run_in_reactor
         def raiser():
-            1/0
+            1 / 0
 
         result = raiser()
         self.assertIsInstance(result, EventualResult)
@@ -742,8 +756,10 @@ class RunInReactorTests(TestCase):
         `wrapped_function` attribute.
         """
         c = EventLoop(lambda: None, lambda f, g: None)
+
         def func():
             pass
+
         wrapper = c.run_in_reactor(func)
         self.assertIdentical(wrapper.wrapped_function, func)
 
@@ -752,6 +768,7 @@ class WaitTestsMixin(object):
     """
     Tests mixin for the wait_for_reactor/wait_for decorators.
     """
+
     def setUp(self):
         self.reactor = FakeReactor()
         self.eventloop = EventLoop(lambda: self.reactor, lambda f, g: None)
@@ -770,11 +787,13 @@ class WaitTestsMixin(object):
         its first argument, or raises it if it's an exception.
         """
         decorator = self.decorator()
+
         @decorator
         def passthrough(argument):
             if isinstance(argument, Exception):
                 raise argument
             return argument
+
         return passthrough
 
     def test_name(self):
@@ -783,9 +802,11 @@ class WaitTestsMixin(object):
         original function.
         """
         decorator = self.decorator()
+
         @decorator
         def some_name(argument):
             pass
+
         self.assertEqual(some_name.__name__, "some_name")
 
     def test_wrapped_function(self):
@@ -794,8 +815,10 @@ class WaitTestsMixin(object):
         `wrapped_function` attribute.
         """
         decorator = self.decorator()
+
         def func():
             pass
+
         wrapper = decorator(func)
         self.assertIdentical(wrapper.wrapped_function, func)
 
@@ -914,8 +937,8 @@ try:
     wait()
 except KeyboardInterrupt:
     sys.exit(23)
-""" % (self.DECORATOR_CALL,)
-        kw = { 'cwd': crochet_directory }
+""" % (self.DECORATOR_CALL, )
+        kw = {'cwd': crochet_directory}
         if platform.type.startswith('win'):
             kw['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
         process = subprocess.Popen([sys.executable, "-c", program], **kw)
@@ -944,7 +967,7 @@ try:
     er = run()
 except crochet.ReactorStopped:
     sys.exit(23)
-"""  % (self.DECORATOR_CALL,)
+""" % (self.DECORATOR_CALL, )
         process = subprocess.Popen([sys.executable, "-c", program],
                                    cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
@@ -974,6 +997,7 @@ class WaitForTests(WaitTestsMixin, TestCase):
         If a function wrapped with wait_for hits the timeout, it raises
         TimeoutError.
         """
+
         @self.eventloop.wait_for(timeout=0.5)
         def times_out():
             return Deferred().addErrback(lambda f: f.trap(CancelledError))
@@ -994,6 +1018,7 @@ class WaitForTests(WaitTestsMixin, TestCase):
         @self.eventloop.wait_for(timeout=0.0)
         def times_out():
             return result
+
         self.assertRaises(TimeoutError, times_out)
         self.assertIsInstance(error[0].value, CancelledError)
 
@@ -1002,13 +1027,18 @@ class PublicAPITests(TestCase):
     """
     Tests for the public API.
     """
+
     def test_no_sideeffects(self):
         """
         Creating an EventLoop object, as is done in crochet.__init__, does not
         call any methods on the objects it is created with.
         """
-        c = EventLoop(lambda: None, lambda f, g: 1/0, lambda *args: 1/0,
-                      watchdog_thread=object(), reapAllProcesses=lambda: 1/0)
+        c = EventLoop(
+            lambda: None,
+            lambda f, g: 1 / 0,
+            lambda *args: 1 / 0,
+            watchdog_thread=object(),
+            reapAllProcesses=lambda: 1 / 0)
         del c
 
     def test_eventloop_api(self):
@@ -1026,13 +1056,14 @@ class PublicAPITests(TestCase):
         self.assertEqual(_main.wait_for_reactor, wait_for_reactor)
         self.assertEqual(_main.wait_for, wait_for)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
-        self.assertIdentical(_main._startLoggingWithObserver,
-                             startLoggingWithObserver)
+        self.assertIdentical(
+            _main._startLoggingWithObserver, startLoggingWithObserver)
         self.assertIdentical(_main._watchdog_thread, _shutdown._watchdog)
 
     def test_eventloop_api_reactor(self):
         """
-        The publicly exposed EventLoop will, when setup, use the global reactor.
+        The publicly exposed EventLoop will, when setup, use the global
+        reactor.
         """
         from twisted.internet import reactor
         _main.no_setup()
@@ -1052,6 +1083,7 @@ class PublicAPITests(TestCase):
         plaforms.
         """
         self.assertIdentical(_main._reapAllProcesses, reapAllProcesses)
+
     if platform.type != "posix":
         test_reapAllProcesses.skip = "Only relevant on POSIX platforms"
     if reapAllProcesses is None:

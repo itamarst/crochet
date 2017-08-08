@@ -20,6 +20,7 @@ class ResultStore(object):
     EventualResults that are not retrieved by shutdown will be logged if they
     have an error result.
     """
+
     def __init__(self):
         self._counter = 0
         self._stored = {}
@@ -53,4 +54,3 @@ class ResultStore(object):
             failure = result.original_failure()
             if failure is not None:
                 log.err(failure, "Unhandled error in stashed EventualResult:")
-

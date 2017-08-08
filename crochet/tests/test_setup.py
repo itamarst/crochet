@@ -72,7 +72,8 @@ class SetupTests(TestCase):
         EventLoop(lambda: reactor, lambda f, *g: None).setup()
         reactor.started.wait(5)
         self.assertNotEqual(reactor.thread_id, None)
-        self.assertNotEqual(reactor.thread_id, threading.current_thread().ident)
+        self.assertNotEqual(
+            reactor.thread_id, threading.current_thread().ident)
         self.assertFalse(reactor.installSignalHandlers)
 
     def test_second_does_nothing(self):
@@ -93,19 +94,20 @@ class SetupTests(TestCase):
         """
         atexit = []
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *args: atexit.append((f, args)))
+        s = EventLoop(
+            lambda: reactor, lambda f, *args: atexit.append((f, args)))
         s.setup()
         self.assertEqual(len(atexit), 2)
         self.assertFalse(reactor.stopping)
         f, args = atexit[0]
         self.assertEqual(f, reactor.callFromThread)
-        self.assertEqual(args, (reactor.stop,))
+        self.assertEqual(args, (reactor.stop, ))
         f(*args)
         self.assertTrue(reactor.stopping)
         f, args = atexit[1]
         self.assertEqual(f, _store.log_errors)
         self.assertEqual(args, ())
-        f(*args) # make sure it doesn't throw an exception
+        f(*args)  # make sure it doesn't throw an exception
 
     def test_runs_with_lock(self):
         """
@@ -120,6 +122,7 @@ class SetupTests(TestCase):
         ThreadLogObserver, removing the default log observer.
         """
         logging = []
+
         def fakeStartLoggingWithObserver(observer, setStdout=1):
             self.assertIsInstance(observer, ThreadLogObserver)
             wrapped = observer._observer
@@ -132,20 +135,23 @@ class SetupTests(TestCase):
             logging.append(observer)
 
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *g: None,
-                         fakeStartLoggingWithObserver)
+        loop = EventLoop(
+            lambda: reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
         loop.setup()
         self.assertTrue(logging)
         logging[0].stop()
 
     def test_stop_logging_on_exit(self):
         """
-        setup() registers a reactor shutdown event that stops the logging thread.
+        setup() registers a reactor shutdown event that stops the logging
+        thread.
         """
         observers = []
         reactor = FakeReactor()
-        s = EventLoop(lambda: reactor, lambda f, *arg: None,
-                      lambda observer, setStdout=1: observers.append(observer))
+        s = EventLoop(
+            lambda: reactor,
+            lambda f, *arg: None,
+            lambda observer, setStdout=1: observers.append(observer))
         s.setup()
         self.addCleanup(observers[0].stop)
         self.assertIn(("after", "shutdown", observers[0].stop), reactor.events)
@@ -155,13 +161,15 @@ class SetupTests(TestCase):
         setup() ensure the warnings module's showwarning is unmodified,
         overriding the change made by normal Twisted logging setup.
         """
+
         def fakeStartLoggingWithObserver(observer, setStdout=1):
             warnings.showwarning = log.showwarning
             self.addCleanup(observer.stop)
+
         original = warnings.showwarning
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *g: None,
-                         fakeStartLoggingWithObserver)
+        loop = EventLoop(
+            lambda: reactor, lambda f, *g: None, fakeStartLoggingWithObserver)
         loop.setup()
         self.assertIs(warnings.showwarning, original)
 
@@ -171,8 +179,8 @@ class SetupTests(TestCase):
         """
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda *args: None,
-                         watchdog_thread=thread)
+        loop = EventLoop(
+            lambda: reactor, lambda *args: None, watchdog_thread=thread)
         loop.setup()
         self.assertTrue(thread.started)
 
@@ -185,9 +193,11 @@ class SetupTests(TestCase):
         atexit = []
         thread = FakeThread()
         reactor = FakeReactor()
-        loop = EventLoop(lambda: reactor, lambda f, *arg: atexit.append(f),
-                         lambda observer, *a, **kw: observers.append(observer),
-                         watchdog_thread=thread)
+        loop = EventLoop(
+            lambda: reactor,
+            lambda f, *arg: atexit.append(f),
+            lambda observer, *a, **kw: observers.append(observer),
+            watchdog_thread=thread)
 
         loop.no_setup()
         loop.setup()
@@ -213,9 +223,8 @@ class SetupTests(TestCase):
         reactor = FakeReactor()
         s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.setup()
-        self.assertEqual(reactor.events,
-                         [("before", "shutdown", s._registry.stop)])
-
+        self.assertEqual(
+            reactor.events, [("before", "shutdown", s._registry.stop)])
 
     def test_no_setup_registry_shutdown(self):
         """
@@ -225,14 +234,15 @@ class SetupTests(TestCase):
         reactor = FakeReactor()
         s = EventLoop(lambda: reactor, lambda f, *g: None)
         s.no_setup()
-        self.assertEqual(reactor.events,
-                         [("before", "shutdown", s._registry.stop)])
+        self.assertEqual(
+            reactor.events, [("before", "shutdown", s._registry.stop)])
 
 
 class ProcessSetupTests(TestCase):
     """
     setup() enables support for IReactorProcess on POSIX plaforms.
     """
+
     def test_posix(self):
         """
         On POSIX systems, setup() installs a LoopingCall that runs
@@ -240,8 +250,10 @@ class ProcessSetupTests(TestCase):
         """
         reactor = FakeReactor()
         reaps = []
-        s = EventLoop(lambda: reactor, lambda f, *g: None,
-                      reapAllProcesses=lambda: reaps.append(1))
+        s = EventLoop(
+            lambda: reactor,
+            lambda f, *g: None,
+            reapAllProcesses=lambda: reaps.append(1))
         s.setup()
         reactor.advance(0.1)
         self.assertEquals(reaps, [1])
@@ -249,6 +261,7 @@ class ProcessSetupTests(TestCase):
         self.assertEquals(reaps, [1, 1])
         reactor.advance(0.1)
         self.assertEquals(reaps, [1, 1, 1])
+
     if platform.type != "posix":
         test_posix.skip = "SIGCHLD is a POSIX-specific issue"
 
@@ -273,6 +286,7 @@ class ReactorImportTests(TestCase):
     doesn't work if reactor is imported
     (https://twistedmatrix.com/trac/ticket/7105).
     """
+
     def test_crochet_import_no_reactor(self):
         """
         Importing crochet should not import the reactor.
@@ -306,6 +320,7 @@ log.msg("log-info")
 log.msg("log-error", isError=True)
 """
 
+
 class LoggingTests(TestCase):
     """
     End-to-end tests for Twisted->stdlib logging bridge.
@@ -320,10 +335,12 @@ class LoggingTests(TestCase):
         if tuple(map(int, twisted.__version__.split("."))) >= (15, 2, 0):
             raise SkipTest("This test is for Twisted < 15.2.")
 
-        program = LOGGING_PROGRAM % ("",)
+        program = LOGGING_PROGRAM % ("", )
         output = subprocess.check_output([sys.executable, "-u", "-c", program],
                                          cwd=crochet_directory)
-        self.assertTrue(output.startswith("""\
+        self.assertTrue(
+            output.startswith(
+                """\
 INFO Log opened.
 INFO log-info
 ERROR log-error
@@ -331,13 +348,14 @@ ERROR log-error
 
     def test_new_logging(self):
         """
-        Messages from both new and old Twisted logging APIs are emitted to Python
-        standard library logging.
+        Messages from both new and old Twisted logging APIs are emitted to
+        Python standard library logging.
         """
         if tuple(map(int, twisted.__version__.split("."))) < (15, 2, 0):
             raise SkipTest("This test is for Twisted 15.2 and later.")
 
-        program = LOGGING_PROGRAM % ("""\
+        program = LOGGING_PROGRAM % (
+            """\
 from twisted.logger import Logger
 l2 = Logger()
 import time
@@ -346,10 +364,11 @@ l2.info("logger-info")
 l2.critical("logger-critical")
 l2.warn("logger-warning")
 l2.debug("logger-debug")
-""",)
+""", )
         output = subprocess.check_output([sys.executable, "-u", "-c", program],
                                          cwd=crochet_directory)
-        self.assertIn("""\
+        self.assertIn(
+            """\
 INFO logger-info
 CRITICAL logger-critical
 WARNING logger-warning
@@ -357,4 +376,3 @@ DEBUG logger-debug
 INFO log-info
 CRITICAL log-error
 """, output.decode("utf-8"))
-

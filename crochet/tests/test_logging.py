@@ -17,6 +17,7 @@ class ThreadLogObserverTest(SynchronousTestCase):
     We use Twisted's SyncTestCase to ensure that unhandled logged errors get
     reported as errors, in particular for test_error.
     """
+
     def test_stop(self):
         """
         ThreadLogObserver.stop() stops the thread started in __init__.
@@ -33,6 +34,7 @@ class ThreadLogObserverTest(SynchronousTestCase):
         the given message.
         """
         messages = []
+
         def observer(msg):
             messages.append((threading.current_thread().ident, msg))
 
@@ -54,6 +56,7 @@ class ThreadLogObserverTest(SynchronousTestCase):
         """
         messages = []
         counter = []
+
         def observer(msg):
             counter.append(1)
             if len(counter) == 2:
@@ -80,7 +83,8 @@ class ThreadLogObserverTest(SynchronousTestCase):
         threadLog = ThreadLogObserver(None)
         threadLog.stop()
         threadLog._thread.join()
-        self.assertIn(threadable.ioThread,
-                      # Either reactor was never run, or run in thread running
-                      # the tests:
-                      (None, threading.current_thread().ident))
+        self.assertIn(
+            threadable.ioThread,
+            # Either reactor was never run, or run in thread running
+            # the tests:
+            (None, threading.current_thread().ident))
