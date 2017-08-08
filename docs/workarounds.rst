@@ -1,6 +1,12 @@
 Known Issues and Workarounds
 ----------------------------
 
+Don't Call Twisted APIs from non-Twisted threads
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As is the case in any Twisted program, you should never call Twisted APIs (e.g. ``reactor.callLater``) from non-Twisted threads.
+Only call Twisted APIs from functions decorated by ``@wait_for`` and friends.
+
 Preventing deadlocks on shutdown
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
