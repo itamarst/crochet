@@ -15,12 +15,13 @@ python:
 
 install:
   - python setup.py --version
-  - pip install -q $TWISTED pyflakes
+  - pip install -q $TWISTED flake8 pylint
   - python setup.py -q install
 
 script:
   - trial crochet.tests
-  - pyflakes crochet
+  - flake8 crochet
+  - pylint crochet
 
 notifications:
   email: false

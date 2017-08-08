@@ -24,14 +24,15 @@ from ._resultstore import ResultStore
 
 _store = ResultStore()
 
-
 if hasattr(weakref, "WeakSet"):
     WeakSet = weakref.WeakSet
 else:
+
     class WeakSet(object):
         """
         Minimal WeakSet emulation.
         """
+
         def __init__(self):
             self._items = weakref.WeakKeyDictionary()
 
@@ -67,7 +68,8 @@ class ResultRegistry(object):
        ReactorStopped exception to unblock any remaining EventualResult.wait()
        calls.
     """
-    def __init__(self, reactor):
+
+    def __init__(self):
         self._results = WeakSet()
         self._stopped = False
         self._lock = threading.Lock()
@@ -127,6 +129,7 @@ class EventualResult(object):
         Should only be run in Twisted thread, and only called once.
         """
         self._deferred = deferred
+
         # Because we use __del__, we need to make sure there are no cycles
         # involving this object, which is why we use a weakref:
         def put(result, eventual=weakref.ref(self)):
@@ -135,6 +138,7 @@ class EventualResult(object):
                 eventual._set_result(result)
             else:
                 err(result, "Unhandled error in EventualResult")
+
         deferred.addBoth(put)
 
     def _set_result(self, result):
@@ -182,10 +186,12 @@ class EventualResult(object):
         result.
         """
         if timeout is None:
-            warnings.warn("Unlimited timeouts are deprecated.",
-                          DeprecationWarning, stacklevel=3)
+            warnings.warn(
+                "Unlimited timeouts are deprecated.",
+                DeprecationWarning,
+                stacklevel=3)
             # Queue.get(None) won't get interrupted by Ctrl-C...
-            timeout = 2 ** 31
+            timeout = 2**31
         self._result_set.wait(timeout)
         # In Python 2.6 we can't rely on the return result of wait(), so we
         # have to check manually:
@@ -220,11 +226,13 @@ class EventualResult(object):
                 pass
             else:
                 # If EventualResult.wait() is run during module import, if the
-                # Twisted code that is being run also imports something the result
-                # will be a deadlock. Even if that is not an issue it would
-                # prevent importing in other threads until the call returns.
+                # Twisted code that is being run also imports something the
+                # result will be a deadlock. Even if that is not an issue it
+                # would prevent importing in other threads until the call
+                # returns.
                 raise RuntimeError(
-                    "EventualResult.wait() must not be run at module import time.")
+                    "EventualResult.wait() must not be run at module "
+                    "import time.")
 
         result = self._result(timeout)
         if isinstance(result, Failure):
@@ -267,6 +275,7 @@ class ThreadLogObserver(object):
     In particular, used to wrap PythonLoggingObserver, so that blocking
     logging.py Handlers don't block the event loop.
     """
+
     def __init__(self, observer):
         self._observer = observer
         if getattr(select, "epoll", None):
@@ -280,8 +289,8 @@ class ThreadLogObserver(object):
             reactorFactory = SelectReactor
         self._logWritingReactor = reactorFactory()
         self._logWritingReactor._registerAsIOThread = False
-        self._thread = threading.Thread(target=self._reader,
-                                        name="CrochetLogWriter")
+        self._thread = threading.Thread(
+            target=self._reader, name="CrochetLogWriter")
         self._thread.start()
 
     def _reader(self):
@@ -301,6 +310,7 @@ class ThreadLogObserver(object):
         """
         A log observer that writes to a queue.
         """
+
         def log():
             try:
                 self._observer(msg)
@@ -316,10 +326,15 @@ class EventLoop(object):
     """
     Initialization infrastructure for running a reactor in a thread.
     """
-    def __init__(self, reactorFactory, atexit_register,
-                 startLoggingWithObserver=None,
-                 watchdog_thread=None,
-                 reapAllProcesses=None):
+
+    def __init__(
+        self,
+        reactorFactory,
+        atexit_register,
+        startLoggingWithObserver=None,
+        watchdog_thread=None,
+        reapAllProcesses=None
+    ):
         """
         reactorFactory: Zero-argument callable that returns a reactor.
         atexit_register: atexit.register, or look-alike.
@@ -351,7 +366,7 @@ class EventLoop(object):
         """
         self._started = True
         self._reactor = self._reactorFactory()
-        self._registry = ResultRegistry(self._reactor)
+        self._registry = ResultRegistry()
         # We want to unblock EventualResult regardless of how the reactor is
         # run, so we always register this:
         self._reactor.addSystemEventTrigger(
@@ -375,6 +390,7 @@ class EventLoop(object):
             self._reactor.callFromThread(self._startReapingProcesses)
         if self._startLoggingWithObserver:
             observer = ThreadLogObserver(PythonLoggingObserver().emit)
+
             def start():
                 # Twisted is going to override warnings.showwarning; let's
                 # make sure that has no effect:
@@ -383,18 +399,18 @@ class EventLoop(object):
                 log.showwarning = warnings.showwarning
                 self._startLoggingWithObserver(observer, False)
                 log.showwarning = original
+
             self._reactor.callFromThread(start)
 
             # We only want to stop the logging thread once the reactor has
             # shut down:
-            self._reactor.addSystemEventTrigger("after", "shutdown",
-                                                observer.stop)
+            self._reactor.addSystemEventTrigger(
+                "after", "shutdown", observer.stop)
         t = threading.Thread(
             target=lambda: self._reactor.run(installSignalHandlers=False),
             name="CrochetReactor")
         t.start()
-        self._atexit_register(self._reactor.callFromThread,
-                              self._reactor.stop)
+        self._atexit_register(self._reactor.callFromThread, self._reactor.stop)
         self._atexit_register(_store.log_errors)
         if self._watchdog_thread is not None:
             self._watchdog_thread.start()
@@ -412,17 +428,20 @@ class EventLoop(object):
         If no_setup() is called after setup(), a RuntimeError is raised.
         """
         if self._started:
-            raise RuntimeError("no_setup() is intended to be called once, by a"
-                               " Twisted application, before any libraries "
-                               "using crochet are imported and call setup().")
+            raise RuntimeError(
+                "no_setup() is intended to be called once, by a"
+                " Twisted application, before any libraries "
+                "using crochet are imported and call setup().")
         self._common_setup()
 
     def run_in_reactor(self, function):
         """
-        A decorator that ensures the wrapped function runs in the reactor thread.
+        A decorator that ensures the wrapped function runs in the reactor
+        thread.
 
         When the wrapped function is called, an EventualResult is returned.
         """
+
         def runs_in_reactor(result, args, kwargs):
             d = maybeDeferred(function, *args, **kwargs)
             result._connect_deferred(d)
@@ -433,6 +452,7 @@ class EventLoop(object):
             self._registry.register(result)
             self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
             return result
+
         wrapper.wrapped_function = function
         return wrapper
 
@@ -440,16 +460,19 @@ class EventLoop(object):
         """
         DEPRECATED, use wait_for(timeout) instead.
 
-        A decorator that ensures the wrapped function runs in the reactor thread.
+        A decorator that ensures the wrapped function runs in the reactor
+        thread.
 
         When the wrapped function is called, its result is returned or its
         exception raised. Deferreds are handled transparently.
         """
-        warnings.warn("@wait_for_reactor is deprecated, use @wait_for instead",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "@wait_for_reactor is deprecated, use @wait_for instead",
+            DeprecationWarning,
+            stacklevel=2)
         # This will timeout, in theory. In practice the process will be dead
         # long before that.
-        return self.wait_for(2 ** 31)(function)
+        return self.wait_for(2**31)(function)
 
     def wait_for(self, timeout):
         """
@@ -461,35 +484,43 @@ class EventLoop(object):
         timeout after the given number of seconds (a float), raising a
         crochet.TimeoutError, and cancelling the Deferred being waited on.
         """
+
         def decorator(function):
             @wraps(function)
             def wrapper(*args, **kwargs):
                 @self.run_in_reactor
                 def run():
                     return function(*args, **kwargs)
+
                 eventual_result = run()
                 try:
                     return eventual_result.wait(timeout)
                 except TimeoutError:
                     eventual_result.cancel()
                     raise
+
             wrapper.wrapped_function = function
             return wrapper
+
         return decorator
 
     def in_reactor(self, function):
         """
         DEPRECATED, use run_in_reactor.
 
-        A decorator that ensures the wrapped function runs in the reactor thread.
+        A decorator that ensures the wrapped function runs in the reactor
+        thread.
 
         The wrapped function will get the reactor passed in as a first
         argument, in addition to any arguments it is called with.
 
         When the wrapped function is called, an EventualResult is returned.
         """
-        warnings.warn("@in_reactor is deprecated, use @run_in_reactor",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "@in_reactor is deprecated, use @run_in_reactor",
+            DeprecationWarning,
+            stacklevel=2)
+
         @self.run_in_reactor
         @wraps(function)
         def add_reactor(*args, **kwargs):

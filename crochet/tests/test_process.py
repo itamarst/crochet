@@ -10,10 +10,12 @@ from twisted.python.runtime import platform
 
 from ..tests import crochet_directory
 
+
 class ProcessTests(TestCase):
     """
     Tests for process support.
     """
+
     def test_processExit(self):
         """
         A Crochet-managed reactor notice when a process it started exits.
@@ -61,5 +63,6 @@ sys.stdout.write("abc")
                                    stdout=subprocess.PIPE)
         result = process.stdout.read()
         self.assertEqual(result, b"abc")
+
     if platform.type != "posix":
         test_processExit.skip = "SIGCHLD is a POSIX-specific issue"

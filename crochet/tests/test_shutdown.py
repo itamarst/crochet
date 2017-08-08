@@ -10,8 +10,8 @@ import time
 
 from twisted.trial.unittest import TestCase
 
-from crochet._shutdown import (Watchdog, FunctionRegistry, _watchdog, register,
-                               _registry)
+from crochet._shutdown import (
+    Watchdog, FunctionRegistry, _watchdog, register, _registry)
 from ..tests import crochet_directory
 
 
@@ -19,6 +19,7 @@ class ShutdownTests(TestCase):
     """
     Tests for shutdown registration.
     """
+
     def test_shutdown(self):
         """
         A function registered with _shutdown.register() is called when the
@@ -116,7 +117,7 @@ class FunctionRegistryTests(TestCase):
         result = []
         registry = FunctionRegistry()
         registry.register(lambda: result.append(2))
-        registry.register(lambda: 1/0)
+        registry.register(lambda: 1 / 0)
         registry.register(lambda: result.append(1))
         registry.run()
         self.assertEqual(result, [1, 2])
