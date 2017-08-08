@@ -1,6 +1,15 @@
 What's New
 ==========
 
+1.8.0
+^^^^^
+
+Bug fixes:
+
+* Switched to EPoll reactor for logging thread.
+  Anecdotal evidence suggests this fixes some issues on AWS Lambda, but it's not clear why.
+  Thanks to Rolando Espinoza for the patch.
+
 1.7.0
 ^^^^^
 
