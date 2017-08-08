@@ -22,7 +22,7 @@ fine; if more than one library does ``crochet.setup()`` only the first one
 will do anything.
 
 
-@wait_for: Blocking Calls into Twisted
+@wait_for: Blocking calls into Twisted
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Now that you've got the reactor running, the next stage is defining some
@@ -80,7 +80,7 @@ If we try to call the function with an invalid domain, we get back an exception:
   twisted.names.error.DNSNameError: <Message id=36791 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query('doesnotexist', 1, 1)] authority=[<RR name= type=SOA class=IN ttl=1694s auth=False>]>
 
 
-@run_in_reactor: Asynchronous Results
+@run_in_reactor: Asynchronous results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``wait_for`` is implemented using ``run_in_reactor``, a more sophisticated and
@@ -135,7 +135,7 @@ will eventually show the downloaded page.
 
 .. _Failure: https://twistedmatrix.com/documents/current/api/twisted.python.failure.Failure.html
 
-Using Crochet from Twisted Applications
+Using Crochet from Twisted applications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If your application is already planning on running the Twisted reactor itself
@@ -158,7 +158,7 @@ to use a Crochet-using library must run it first:
     reactor.run()
 
 
-Unit Testing
+Unit testing
 ^^^^^^^^^^^^
 
 Both ``@wait_for`` and ``@run_in_reactor`` expose the underlying Twisted

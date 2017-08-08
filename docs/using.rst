@@ -38,7 +38,7 @@ provides a blocking wrapper using Crochet.
 .. literalinclude:: ../examples/scheduling.py
 
 
-Minimize Decorated Code
+Minimize decorated code
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 It's best to have as little code as possible in the

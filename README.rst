@@ -1,4 +1,4 @@
-Crochet: Use Twisted Anywhere!
+Crochet: Use Twisted anywhere!
 ==============================
 
 Crochet is an MIT-licensed library that makes it easier to use Twisted from
@@ -32,7 +32,7 @@ Bugs and feature requests should be filed at the project `Github page`_.
 .. _PyPI: https://pypi.python.org/pypi/crochet
 
 
-API and Features
+API and features
 ================
 
 .. image:: https://travis-ci.org/itamarst/crochet.png?branch=master

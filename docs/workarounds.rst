@@ -1,7 +1,7 @@
 Known Issues and Workarounds
 ----------------------------
 
-Preventing Deadlocks on Shutdown
+Preventing deadlocks on shutdown
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To ensure a timely process exit, during reactor shutdown Crochet will try to
@@ -17,7 +17,7 @@ The solution is to interrupt all blocking calls yourself. You can do this by
 firing or canceling any ``Deferred`` instances you are waiting on as part of
 your application shutdown, and do so before you stop any thread pools.
 
-Reducing Twisted Log Messages
+Reducing Twisted log messages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Twisted can be rather verbose with its log messages. If you wish to reduce the
@@ -29,7 +29,7 @@ message flow you can limit them to error messages only:
    logging.getLogger('twisted').setLevel(logging.ERROR)
 
 
-Missing Tracebacks
+Missing tracebacks
 ^^^^^^^^^^^^^^^^^^
 
 In order to prevent massive memory leaks, Twisted currently wipes out the traceback from exceptions it captures (see https://tm.tl/7873 for ideas on improving this).
