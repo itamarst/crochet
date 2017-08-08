@@ -31,4 +31,5 @@ Table of Contents
    api
    using
    workarounds
+   async
    news
