@@ -4,11 +4,18 @@ What's New
 1.8.0
 ^^^^^
 
+New features:
+
+* Signatures on decorated functions now match the original functions.
+  Thanks to Mikhail Terekhov for the original patch.
+
 Bug fixes:
 
 * Switched to EPoll reactor for logging thread.
   Anecdotal evidence suggests this fixes some issues on AWS Lambda, but it's not clear why.
   Thanks to Rolando Espinoza for the patch.
+* It's now possible to call ``@run_in_reactor`` and ``@wait_for`` above a ``@classmethod``.
+  Thanks to vak for the bug report.
 
 1.7.0
 ^^^^^
