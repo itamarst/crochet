@@ -686,6 +686,48 @@ class RunInReactorTests(TestCase):
         func(1, 2, c=3)
         self.assertEqual(calls, [(1, 2, 3)])
 
+    def test_method(self):
+        """
+        The function decorated with the wait decorator can be a method.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+        calls = []
+
+        class C(object):
+            @c.run_in_reactor
+            def func(self, a, b, c):
+                calls.append((self, a, b, c))
+
+        o = C()
+        o.func(1, 2, c=3)
+        self.assertEqual(calls, [(o, 1, 2, 3)])
+
+    def test_classmethod(self):
+        """
+        The function decorated with the wait decorator can be a classmethod.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+        calls = []
+
+        class C(object):
+            @c.run_in_reactor
+            @classmethod
+            def func(cls, a, b, c):
+                calls.append((cls, a, b, c))
+
+            @classmethod
+            @c.run_in_reactor
+            def func2(cls, a, b, c):
+                calls.append((cls, a, b, c))
+
+        C.func(1, 2, c=3)
+        C.func2(1, 2, c=3)
+        self.assertEqual(calls, [(C, 1, 2, 3), (C, 1, 2, 3)])
+
     def make_wrapped_function(self):
         """
         Return a function wrapped with run_in_reactor that returns its first
