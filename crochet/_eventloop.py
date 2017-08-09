@@ -438,7 +438,7 @@ class EventLoop(object):
         self._common_setup()
 
     @wrapt.decorator
-    def _run_in_reactor(self, function, instance, args, kwargs):
+    def _run_in_reactor(self, function, _, args, kwargs):
         """
         Implementation: A decorator that ensures the wrapped function runs in
         the reactor thread.
@@ -505,7 +505,7 @@ class EventLoop(object):
 
         def decorator(function):
             @wrapt.decorator
-            def wrapper(function, instance, args, kwargs):
+            def wrapper(function, _, args, kwargs):
                 @self.run_in_reactor
                 def run():
                     return function(*args, **kwargs)
