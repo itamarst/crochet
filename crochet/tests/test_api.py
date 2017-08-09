@@ -13,6 +13,7 @@ import weakref
 import tempfile
 import os
 import imp
+import inspect
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
@@ -641,6 +642,19 @@ class RunInReactorTests(TestCase):
     Tests for the run_in_reactor decorator.
     """
 
+    def test_signature(self):
+        """
+        The function decorated with the run_in_reactor decorator has the same
+        signature as the original function.
+        """
+        c = EventLoop(lambda: FakeReactor(), lambda f, g: None)
+
+        def some_name(arg1, arg2, karg1=2, *args, **kw):
+            pass
+        decorated = c.run_in_reactor(some_name)
+        self.assertEqual(inspect.getargspec(some_name),
+                         inspect.getargspec(decorated))
+
     def test_name(self):
         """
         The function decorated with run_in_reactor has the same name as the
@@ -671,6 +685,48 @@ class RunInReactorTests(TestCase):
 
         func(1, 2, c=3)
         self.assertEqual(calls, [(1, 2, 3)])
+
+    def test_method(self):
+        """
+        The function decorated with the wait decorator can be a method.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+        calls = []
+
+        class C(object):
+            @c.run_in_reactor
+            def func(self, a, b, c):
+                calls.append((self, a, b, c))
+
+        o = C()
+        o.func(1, 2, c=3)
+        self.assertEqual(calls, [(o, 1, 2, 3)])
+
+    def test_classmethod(self):
+        """
+        The function decorated with the wait decorator can be a classmethod.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+        calls = []
+
+        class C(object):
+            @c.run_in_reactor
+            @classmethod
+            def func(cls, a, b, c):
+                calls.append((cls, a, b, c))
+
+            @classmethod
+            @c.run_in_reactor
+            def func2(cls, a, b, c):
+                calls.append((cls, a, b, c))
+
+        C.func(1, 2, c=3)
+        C.func2(1, 2, c=3)
+        self.assertEqual(calls, [(C, 1, 2, 3), (C, 1, 2, 3)])
 
     def make_wrapped_function(self):
         """
@@ -809,6 +865,19 @@ class WaitTestsMixin(object):
 
         self.assertEqual(some_name.__name__, "some_name")
 
+    def test_signature(self):
+        """
+        The function decorated with the wait decorator has the same signature
+        as the original function.
+        """
+        decorator = self.decorator()
+
+        def some_name(arg1, arg2, karg1=2, *args, **kw):
+            pass
+        decorated = decorator(some_name)
+        self.assertEqual(inspect.getargspec(some_name),
+                         inspect.getargspec(decorated))
+
     def test_wrapped_function(self):
         """
         The function wrapped by the wait decorator can be accessed via the
@@ -862,6 +931,28 @@ class WaitTestsMixin(object):
 
         func(1, 2, c=3)
         self.assertEqual(calls, [(1, 2, 3)])
+
+    def test_classmethod(self):
+        """
+        The function decorated with the wait decorator can be a classmethod.
+        """
+        calls = []
+        decorator = self.decorator()
+
+        class C(object):
+            @decorator
+            @classmethod
+            def func(cls, a, b, c):
+                calls.append((a, b, c))
+
+            @classmethod
+            @decorator
+            def func2(cls, a, b, c):
+                calls.append((a, b, c))
+
+        C.func(1, 2, c=3)
+        C.func2(1, 2, c=3)
+        self.assertEqual(calls, [(1, 2, 3), (1, 2, 3)])
 
     def test_deferred_success_result(self):
         """

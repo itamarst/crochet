@@ -13,6 +13,7 @@ def read(path):
     with open(path) as f:
         return f.read()
 
+
 setup(
     classifiers=[
         'Intended Audience :: Developers',
@@ -32,6 +33,7 @@ setup(
     description="Use Twisted anywhere!",
     install_requires=[
         "Twisted>=15.0",
+        "wrapt",
     ],
     keywords="twisted threading",
     license="MIT",

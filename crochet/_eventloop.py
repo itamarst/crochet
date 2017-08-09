@@ -5,6 +5,7 @@ Expose Twisted's event loop to threaded programs.
 from __future__ import absolute_import
 
 import select
+import sys
 import threading
 import weakref
 import warnings
@@ -18,6 +19,8 @@ from twisted.python.failure import Failure
 from twisted.python.log import PythonLoggingObserver, err
 from twisted.internet.defer import maybeDeferred
 from twisted.internet.task import LoopingCall
+
+import wrapt
 
 from ._util import synchronized
 from ._resultstore import ResultStore
@@ -434,10 +437,11 @@ class EventLoop(object):
                 "using crochet are imported and call setup().")
         self._common_setup()
 
-    def run_in_reactor(self, function):
+    @wrapt.decorator
+    def _run_in_reactor(self, function, _, args, kwargs):
         """
-        A decorator that ensures the wrapped function runs in the reactor
-        thread.
+        Implementation: A decorator that ensures the wrapped function runs in
+        the reactor thread.
 
         When the wrapped function is called, an EventualResult is returned.
         """
@@ -446,15 +450,29 @@ class EventLoop(object):
             d = maybeDeferred(function, *args, **kwargs)
             result._connect_deferred(d)
 
-        @wraps(function)
-        def wrapper(*args, **kwargs):
-            result = EventualResult(None, self._reactor)
-            self._registry.register(result)
-            self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
-            return result
+        result = EventualResult(None, self._reactor)
+        self._registry.register(result)
+        self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
+        return result
 
-        wrapper.wrapped_function = function
-        return wrapper
+    def run_in_reactor(self, function):
+        """
+        A decorator that ensures the wrapped function runs in the
+        reactor thread.
+
+        When the wrapped function is called, an EventualResult is returned.
+        """
+        result = self._run_in_reactor(function)
+        # Backwards compatibility; we could have used wrapt's version, but
+        # older Crochet code exposed different attribute name:
+        try:
+            result.wrapped_function = function
+        except AttributeError:
+            if sys.version_info[0] == 3:
+                raise
+            # In Python 2 e.g. classmethod has some limitations where you can't
+            # set stuff on it.
+        return result
 
     def wait_for_reactor(self, function):
         """
@@ -486,8 +504,8 @@ class EventLoop(object):
         """
 
         def decorator(function):
-            @wraps(function)
-            def wrapper(*args, **kwargs):
+            @wrapt.decorator
+            def wrapper(function, _, args, kwargs):
                 @self.run_in_reactor
                 def run():
                     return function(*args, **kwargs)
@@ -499,8 +517,16 @@ class EventLoop(object):
                     eventual_result.cancel()
                     raise
 
-            wrapper.wrapped_function = function
-            return wrapper
+            result = wrapper(function)
+            # Expose underling function for testing purposes:
+            try:
+                result.wrapped_function = function
+            except AttributeError:
+                if sys.version_info[0] == 3:
+                    raise
+                # In Python 2 e.g. classmethod has some limitations where you
+                # can't set stuff on it.
+            return result
 
         return decorator
 
