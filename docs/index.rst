@@ -32,4 +32,5 @@ Table of Contents
    using
    workarounds
    async
+   api-reference
    news

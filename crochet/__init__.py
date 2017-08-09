@@ -66,7 +66,4 @@ __all__ = [
     "wait_for",
     "ReactorStopped",
     "__version__",
-    # Backwards compatibility:
-    "DeferredResult",
-    "in_reactor",
-    "wait_for_reactor", ]
+]
