@@ -8,6 +8,7 @@ New features:
 
 * Signatures on decorated functions now match the original functions.
   Thanks to Mikhail Terekhov for the original patch.
+* Documentation improvements, including an API reference.
 
 Bug fixes:
 
