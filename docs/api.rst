@@ -162,14 +162,14 @@ Unit testing
 ^^^^^^^^^^^^
 
 Both ``@wait_for`` and ``@run_in_reactor`` expose the underlying Twisted
-function via a ``wrapped_function`` attribute. This allows unit testing of the
+function via a ``__wrapped__`` attribute. This allows unit testing of the
 Twisted code without having to go through the Crochet layer.
 
 .. literalinclude:: ../examples/testing.py
 
 When run, this gives the following output::
 
-    add() returns EventualResult:
+    add(1, 2) returns EventualResult:
          <crochet._eventloop.EventualResult object at 0x2e8b390>
-    add.wrapped_function() returns result of underlying function:
+    add.__wrapped__(1, 2) returns result of underlying function:
          3
