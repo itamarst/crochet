@@ -728,6 +728,23 @@ class RunInReactorTests(TestCase):
         C.func2(1, 2, c=3)
         self.assertEqual(calls, [(C, 1, 2, 3), (C, 1, 2, 3)])
 
+    def test_wrap_method(self):
+        """
+        The object decorated with the wait decorator can be a method object
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+        calls = []
+
+        class C(object):
+            def func(self, a, b, c):
+                calls.append((a, b, c))
+
+        f = c.run_in_reactor(C().func)
+        f(4, 5, c=6)
+        self.assertEqual(calls, [(4, 5, 6)])
+
     def make_wrapped_function(self):
         """
         Return a function wrapped with run_in_reactor that returns its first
@@ -809,7 +826,8 @@ class RunInReactorTests(TestCase):
     def test_wrapped_function(self):
         """
         The function wrapped by @run_in_reactor can be accessed via the
-        `wrapped_function` attribute.
+        `__wrapped__` attribute and the `wrapped_function` attribute
+        (deprecated, and not always available).
         """
         c = EventLoop(lambda: None, lambda f, g: None)
 
@@ -817,6 +835,7 @@ class RunInReactorTests(TestCase):
             pass
 
         wrapper = c.run_in_reactor(func)
+        self.assertIdentical(wrapper.__wrapped__, func)
         self.assertIdentical(wrapper.wrapped_function, func)
 
 
@@ -881,7 +900,7 @@ class WaitTestsMixin(object):
     def test_wrapped_function(self):
         """
         The function wrapped by the wait decorator can be accessed via the
-        `wrapped_function` attribute.
+        `__wrapped__`, and the deprecated `wrapped_function` attribute.
         """
         decorator = self.decorator()
 
@@ -889,6 +908,7 @@ class WaitTestsMixin(object):
             pass
 
         wrapper = decorator(func)
+        self.assertIdentical(wrapper.__wrapped__, func)
         self.assertIdentical(wrapper.wrapped_function, func)
 
     def test_reactor_thread_disallowed(self):

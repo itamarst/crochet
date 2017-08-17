@@ -14,7 +14,7 @@ def add(x, y):
 
 
 if __name__ == '__main__':
-    print("add() returns EventualResult:")
+    print("add(1, 2) returns EventualResult:")
     print("    ", add(1, 2))
-    print("add.wrapped_function() returns result of underlying function:")
-    print("    ", add.wrapped_function(1, 2))
+    print("add.__wrapped__(1, 2) is the result of the underlying function:")
+    print("    ", add.__wrapped__(1, 2))

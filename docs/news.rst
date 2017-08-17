@@ -1,6 +1,23 @@
 What's New
 ==========
 
+1.9.0
+^^^^^
+
+New features:
+
+* The underlying callable wrapped ``@run_in_reactor`` and ``@wait_for`` is now available via the more standard ``__wrapped__`` attribute.
+
+Backwards incompatibility (in tests):
+
+* This was actually introduced in 1.8.0: ``wrapped_function`` may not always be available on decorated callables.
+  You should use ``__wrapped__`` instead.
+
+Bug fixes:
+
+* Fixed regression in 1.8.0 where bound method couldn't be wrapped.
+  Thanks to 2mf for the bug report.
+
 1.8.0
 ^^^^^
 
@@ -23,7 +40,7 @@ Bug fixes:
 
 Bug fixes:
 
-* If the Python `logging.Handler` throws an exception Crochet no longer goes into a death spiral.
+* If the Python ``logging.Handler`` throws an exception Crochet no longer goes into a death spiral.
   Thanks to Michael Schlenker for the bug report.
 
 Removed features:

@@ -5,7 +5,6 @@ Expose Twisted's event loop to threaded programs.
 from __future__ import absolute_import
 
 import select
-import sys
 import threading
 import weakref
 import warnings
@@ -463,15 +462,11 @@ class EventLoop(object):
         When the wrapped function is called, an EventualResult is returned.
         """
         result = self._run_in_reactor(function)
-        # Backwards compatibility; we could have used wrapt's version, but
-        # older Crochet code exposed different attribute name:
+        # Backwards compatibility; use __wrapped__ instead.
         try:
             result.wrapped_function = function
         except AttributeError:
-            if sys.version_info[0] == 3:
-                raise
-            # In Python 2 e.g. classmethod has some limitations where you can't
-            # set stuff on it.
+            pass
         return result
 
     def wait_for_reactor(self, function):
@@ -518,14 +513,12 @@ class EventLoop(object):
                     raise
 
             result = wrapper(function)
-            # Expose underling function for testing purposes:
+            # Expose underling function for testing purposes; this attribute is
+            # deprecated, use __wrapped__ instead:
             try:
                 result.wrapped_function = function
             except AttributeError:
-                if sys.version_info[0] == 3:
-                    raise
-                # In Python 2 e.g. classmethod has some limitations where you
-                # can't set stuff on it.
+                pass
             return result
 
         return decorator
