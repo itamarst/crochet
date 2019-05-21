@@ -50,7 +50,7 @@ class FunctionRegistry(object):
         for f in reversed(self._functions):
             try:
                 f()
-            except:
+            except Exception:
                 log.err()
 
 

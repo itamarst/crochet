@@ -316,7 +316,7 @@ class ThreadLogObserver(object):
         def log():
             try:
                 self._observer(msg)
-            except:
+            except Exception:
                 # Lower-level logging system blew up, nothing we can do, so
                 # just drop on the floor.
                 pass
