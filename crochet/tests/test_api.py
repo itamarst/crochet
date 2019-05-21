@@ -153,13 +153,13 @@ class EventualResultTests(TestCase):
         """
         d = Deferred()
         dr = EventualResult(d, None)
-        l = []
-        done = append_in_thread(l, dr.wait)
+        result_list = []
+        done = append_in_thread(result_list, dr.wait)
         time.sleep(0.1)
         # At this point dr.wait() should have started:
         d.callback(345)
         done.wait()
-        self.assertEqual(l, [True, 345])
+        self.assertEqual(result_list, [True, 345])
 
     def test_success_result_twice(self):
         """
@@ -183,12 +183,13 @@ class EventualResultTests(TestCase):
         """
         d = Deferred()
         dr = EventualResult(d, None)
-        l = []
-        done = append_in_thread(l, dr.wait)
+        result_list = []
+        done = append_in_thread(result_list, dr.wait)
         time.sleep(0.1)
         d.errback(RuntimeError())
         done.wait()
-        self.assertEqual((l[0], l[1].__class__), (False, RuntimeError))
+        self.assertEqual(
+            (result_list[0], result_list[1].__class__), (False, RuntimeError))
 
     def test_failure_result_twice(self):
         """
@@ -270,7 +271,7 @@ class EventualResultTests(TestCase):
         """
         try:
             1 / 0
-        except:
+        except ZeroDivisionError:
             f = Failure()
         dr = EventualResult(fail(f), None)
         self.assertIdentical(dr.original_failure(), f)
