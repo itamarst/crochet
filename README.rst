@@ -17,6 +17,8 @@ regular blocking code. Some use cases include:
 
 Crochet is maintained by Itamar Turner-Trauring.
 
+> **Note:** Crochet development is pretty slow these days because mostly it Just Works. PyPI shows about 20,000 downloads a month, so existing users seem happy: https://pypistats.org/packages/crochet
+
 You can install Crochet by running::
 
   $ pip install crochet
