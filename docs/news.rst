@@ -1,6 +1,13 @@
 What's New
 ==========
 
+1.10.0
+^^^^^^
+
+New features:
+
+* Added support for Python 3.7.
+
 1.9.0
 ^^^^^
 
