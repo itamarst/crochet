@@ -1,27 +1,30 @@
 language: python
-
-env:
-  # Oldest supported version:
-  - TWISTED=Twisted==16.0
-  # Latest Twisted:
-  - TWISTED=Twisted
-
-python:
-  - 2.7
-  - 3.4
-  - 3.5
-  - 3.6
-  - pypy
+cache: pip
+dist: xenial
 
 install:
-  - python setup.py --version
-  - pip install -q $TWISTED flake8 pylint
-  - python setup.py -q install
+ - pip install --upgrade pip setuptools
+ - pip install tox-travis
+
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.7"
+  - "pypy"
+
+env:
+  - TWISTED="16"
+  - TWISTED="latest"
 
 script:
-  - trial crochet.tests
-  - flake8 crochet
-  - pylint crochet
+  - tox
+
+matrix:
+  include:
+    - python: "3.5"
+      env: TOXENV=lint3
 
 notifications:
   email: false
