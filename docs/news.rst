@@ -6,7 +6,7 @@ What's New
 
 New features:
 
-* Added support for Python 3.7.
+* Added support for Python 3.7. Thanks to Jeremy Cline for the patch.
 
 1.9.0
 ^^^^^
