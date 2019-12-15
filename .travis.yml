@@ -8,11 +8,12 @@ install:
 
 python:
   - "2.7"
-  - "3.4"
   - "3.5"
   - "3.6"
   - "3.7"
+  - "3.8"
   - "pypy"
+  - "pypy3"
 
 env:
   - TWISTED="16"
@@ -25,6 +26,10 @@ matrix:
   include:
     - python: "3.5"
       env: TOXENV=lint3
+  exclude:
+    # Twisted 16 doesn't work with Python 3.8:
+    - python: "3.8"
+      env: TWISTED="16"
 
 notifications:
   email: false
