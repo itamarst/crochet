@@ -8,6 +8,10 @@ New features:
 
 * Added support for Python 3.8 and PyPy 3.
 
+Backwards incompatibility:
+
+* Dropped support for Python 3.4, since latest Twisted doesn't support it.
+
 1.10.0
 ^^^^^^
 
