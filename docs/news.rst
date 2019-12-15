@@ -1,6 +1,13 @@
 What's New
 ==========
 
+1.11.0
+^^^^^^
+
+New features:
+
+* Added support for Python 3.8 and PyPy 3.
+
 1.10.0
 ^^^^^^
 

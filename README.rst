@@ -17,7 +17,7 @@ regular blocking code. Some use cases include:
 
 Crochet is maintained by Itamar Turner-Trauring.
 
-  **Note:** Crochet development is pretty slow these days because mostly it Just Works. PyPI shows about 20,000 downloads a month, so existing users seem happy: https://pypistats.org/packages/crochet
+  **Note:** Crochet development is pretty slow these days because mostly it **Just Works**. PyPI shows about 30,000 downloads a month, so existing users seem happy: https://pypistats.org/packages/crochet
 
 You can install Crochet by running::
 
@@ -41,7 +41,7 @@ API and features
            :target: http://travis-ci.org/itamarst/crochet
            :alt: Build Status
 
-Crochet supports Python 2.7, 3.4, 3.5, 3.6, and 3.7 as well as PyPy.
+Crochet supports Python 2.7, 3.4, 3.5, 3.6, 3.7, and 3.8 as well as PyPy and PyPy3.
 
 Crochet provides the following basic APIs:
 
