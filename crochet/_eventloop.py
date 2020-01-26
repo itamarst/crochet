@@ -193,7 +193,7 @@ class EventualResult(object):
                 DeprecationWarning,
                 stacklevel=3)
             # Queue.get(None) won't get interrupted by Ctrl-C...
-            timeout = 2**31
+            timeout = 2 ** 28
         self._result_set.wait(timeout)
         # In Python 2.6 we can't rely on the return result of wait(), so we
         # have to check manually:
