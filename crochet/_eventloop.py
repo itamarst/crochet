@@ -31,7 +31,7 @@ if sys.version_info <= (3, 3):
             return
 
         try:
-            _release_lock()
+            imp.release_lock()
         except RuntimeError:
             # The lock is held by some other thread. We should be safe
             # to continue.
