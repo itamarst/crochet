@@ -1,6 +1,13 @@
 What's New
 ==========
 
+1.12.0
+^^^^^^
+
+Bug fixes:
+
+* Fix a timeout overflow bug in 32-bit machines.
+
 1.11.0
 ^^^^^^
 
