@@ -15,7 +15,7 @@ from twisted.python import threadable
 from twisted.python.runtime import platform
 from twisted.python.failure import Failure
 from twisted.python.log import PythonLoggingObserver, err
-from twisted.internet.defer import maybeDeferred
+from twisted.internet.defer import ensureDeferred
 from twisted.internet.task import LoopingCall
 
 import wrapt
@@ -456,7 +456,7 @@ class EventLoop(object):
         """
 
         def runs_in_reactor(result, args, kwargs):
-            d = maybeDeferred(function, *args, **kwargs)
+            d = ensureDeferred(function(*args, **kwargs))
             result._connect_deferred(d)
 
         result = EventualResult(None, self._reactor)
@@ -513,7 +513,7 @@ class EventLoop(object):
             def wrapper(function, _, args, kwargs):
                 @self.run_in_reactor
                 def run():
-                    return function(*args, **kwargs)
+                    return ensureDeferred(function(*args, **kwargs))
 
                 eventual_result = run()
                 try:
@@ -553,6 +553,6 @@ class EventLoop(object):
         @self.run_in_reactor
         @wraps(function)
         def add_reactor(*args, **kwargs):
-            return function(self._reactor, *args, **kwargs)
+            return ensureDeferred(function(self._reactor, *args, **kwargs))
 
         return add_reactor
