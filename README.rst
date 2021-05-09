@@ -65,7 +65,7 @@ limitations in ``Callable`` generic construction (see
 a ``@run_in_reactor``-decorated function or method cannot be checked without
 giving type checkers some special help.  Crochet ships with a plugin which
 fills this role when the ``mypy`` static type checker is used.  It resides in
-the ``crochet.mypy`` package and must be configured as described in
+``crochet.mypy`` and must be configured as described in
 `Configuring mypy to use plugins`_.  For example, in a ``mypy.ini``
 configuration file::
 
