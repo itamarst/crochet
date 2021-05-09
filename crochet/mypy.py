@@ -1,6 +1,7 @@
 """
 Mypy plugin to aid with typechecking code that uses Crochet.
 """
+
 import typing
 from typing import Callable, Optional
 
@@ -15,7 +16,8 @@ def plugin(_version: str) -> typing.Type[Plugin]:
 class CrochetMypyPlugin(Plugin):
     """
     Assists mypy with type checking APIs not (yet) fully covered by Python's
-    type hint annotation types.
+    type hint annotation types, by copying run_in_reactor decorated function's
+    argument types to the type mypy deduces for the wrapped function.
     """
 
     def get_function_hook(
@@ -29,44 +31,8 @@ class CrochetMypyPlugin(Plugin):
 
 def _copyargs_callback(ctx: FunctionContext) -> Type:
     """
-    Copy the paramters from the signature of the type of the argument of the
-    call to the signature of the return type.  This is appropriate for
-    function/method decorators which can be used on functions/methods with
-    variable signatures and simply change the return type while passing through
-    all arguments unchanged.
-
-    For example::
-
-        T = TypeVar("T")
-
-        def make_coroutine(
-            f: Callable[..., Awaitable[T]],
-        ) -> Callable[..., Coroutine[None, None, T]]:
-
-            @wraps(f)
-            async def wrapper(*a: Any, **kw: Any) -> T:
-                return await f(*a, **kw)
-
-            # Replace the runtime-inspectable signature too.
-            sig = inspect.signature(f, follow_wrapped=False)
-            if sig.get_origin() is Awaitable:
-                t = sig.return_annotation.get_args(0)
-                wrapper.__signature__ = sig.replace(
-                    return_annotation=Coroutine[None, None, t],
-                )
-
-            return wrapper
-
-        @make_coroutine
-        def do_thing_in_future(
-            thing: Callable[[], Result], when: float,
-        ) -> Awaitable[Result]:
-            ...
-            return asyncio.ensure_future(...)
-
-        # Oops!  No type-checking on do_thing_in_future's args without help!
-        # Hopefully future Python typing enhancements will fix this. For
-        # example, see PEP 612: Parameter Specification Variables.
+    Copy the parameters from the signature of the type of the argument of the
+    call to the signature of the return type.
     """
     original_return_type = ctx.default_return_type
     if not ctx.arg_types or len(ctx.arg_types[0]) != 1:
