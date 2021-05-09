@@ -3,10 +3,13 @@ Tests for crochet.mypy.
 """
 from tempfile import NamedTemporaryFile
 from textwrap import dedent, indent
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 
-import mypy.api
-
+try:
+    import mypy.api
+    MYPY_AVAILABLE = True
+except ImportError:
+    MYPY_AVAILABLE = False
 
 MYPY_CONFIG = dedent(
     """\
@@ -16,6 +19,7 @@ MYPY_CONFIG = dedent(
 )
 
 
+@skipUnless(MYPY_AVAILABLE, "Tests require mypy to be installed.")
 class MypyTests(TestCase):
     def test_mypy_working(self) -> None:
         """
