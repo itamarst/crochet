@@ -5,8 +5,8 @@ Mypy plugin to aid with typechecking code that uses Crochet.
 import typing
 from typing import Callable, Optional
 
-from mypy.plugin import FunctionContext, Plugin
-from mypy.types import CallableType, Type, get_proper_type
+from mypy.plugin import FunctionContext, Plugin  # pylint: disable=no-name-in-module
+from mypy.types import CallableType, Type, get_proper_type  # pylint: disable=no-name-in-module
 
 
 def plugin(_version: str) -> typing.Type[Plugin]:
