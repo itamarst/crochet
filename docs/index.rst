@@ -30,6 +30,7 @@ Table of Contents
    introduction
    api
    using
+   type-checking
    workarounds
    async
    api-reference

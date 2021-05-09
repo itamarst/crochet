@@ -1,5 +1,5 @@
-The API
--------
+Using Crochet
+-------------
 
 Using Crochet involves three parts: reactor setup, defining functions that
 call into Twisted's reactor, and using those functions.

@@ -55,4 +55,3 @@ Crochet will do the following on your behalf in order to enable these APIs:
 * Hook up Twisted's log system to the Python standard library ``logging``
   framework. Unlike Twisted's built-in ``logging`` bridge, this includes
   support for blocking `Handler` instances.
-

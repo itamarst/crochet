@@ -7,6 +7,7 @@ What's New
 New features:
 
 * Added support for Python 3.9.
+* Added type hints, thanks to Merlin Davis.
 
 Removed features:
 
