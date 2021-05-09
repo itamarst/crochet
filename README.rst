@@ -41,7 +41,8 @@ API and features
            :target: http://travis-ci.org/itamarst/crochet
            :alt: Build Status
 
-Crochet supports Python 2.7, 3.5, 3.6, 3.7, and 3.8 as well as PyPy and PyPy3.
+Crochet supports Python 3.6, 3.7, 3.8, and 3.9 as well as PyPy and PyPy3.
+Python 2.7 and 3.5 support is available in older releases.
 
 Crochet provides the following basic APIs:
 
