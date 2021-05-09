@@ -59,7 +59,7 @@ Crochet will do the following on your behalf in order to enable these APIs:
 Static Type Checking
 --------------------
 
-Crochet comes with type hints for Python 3.5+.  However, due to current
+Crochet comes with type hints for Python 3.6+.  However, due to current
 limitations in ``Callable`` generic construction (see
 `PEP 612 — Parameter Specification Variables`_), the arguments of a call to
 a ``@run_in_reactor``-decorated function or method cannot be checked without
