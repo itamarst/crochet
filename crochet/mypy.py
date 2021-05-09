@@ -1,3 +1,6 @@
+"""
+Mypy plugin to aid with typechecking code that uses Crochet.
+"""
 import typing
 from typing import Callable, Optional
 
