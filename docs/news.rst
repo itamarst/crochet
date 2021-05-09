@@ -1,6 +1,25 @@
 What's New
 ==========
 
+1.13.0
+^^^^^^
+
+New features:
+
+* Added support for Python 3.9.
+
+Removed features:
+
+* Dropped support for Python 2.7 and 3.5.
+
+1.12.0
+^^^^^^
+
+Bug fixes:
+
+* Fix a timeout overflow bug in 32-bit machines.
+
+
 1.11.0
 ^^^^^^
 
