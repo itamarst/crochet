@@ -39,7 +39,7 @@ setup(
     keywords="twisted threading",
     license="MIT",
     package_data={"crochet": ["py.typed", "*.pyi"]},
-    packages=["crochet", "crochet.mypy", "crochet.tests"],
+    packages=["crochet", "crochet.tests"],
     url="https://github.com/itamarst/crochet",
     maintainer='Itamar Turner-Trauring',
     maintainer_email='itamar@itamarst.org',
