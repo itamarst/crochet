@@ -105,7 +105,7 @@ class ResultRegistryTests(TestCase):
         self.assertTrue(ResultRegistry.register.synchronized)
 
 
-def append_in_thread(l, f, *args, **kwargs):
+def append_in_thread(a_list, f, *args, **kwargs):
     """
     Call a function in a thread, append its result to the given list.
 
@@ -121,9 +121,9 @@ def append_in_thread(l, f, *args, **kwargs):
         try:
             result = f(*args, **kwargs)
         except Exception as e:
-            l.extend([False, e])
+            a_list.extend([False, e])
         else:
-            l.extend([True, result])
+            a_list.extend([True, result])
         done.set()
 
     threading.Thread(target=go).start()
