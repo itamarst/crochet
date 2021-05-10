@@ -14,6 +14,7 @@ import tempfile
 import os
 import imp
 import inspect
+from unittest import SkipTest
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
