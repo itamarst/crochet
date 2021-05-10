@@ -10,7 +10,7 @@ on:
 
 jobs:
   tests:
-    name: "Python ${{ matrix.python-version }}"
+    name: "Python ${{ matrix.python-version }} ${{ matrix.platform }} ${{ matrix.architecture }}"
     strategy:
       matrix:
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10-dev", "pypy3"]
@@ -31,7 +31,6 @@ jobs:
           architecture: "${{ matrix.architecture }}"
       - name: "Install dependencies"
         run: |
-          set -xe
           python -VV
           python -m site
           python -m pip install --upgrade pip setuptools wheel
