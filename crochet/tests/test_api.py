@@ -1016,6 +1016,8 @@ class WaitTestsMixin(object):
         A call to a decorated function responds to a Ctrl-C (i.e. with a
         KeyboardInterrupt) in a timely manner.
         """
+        if platform.type != "posix":
+            raise SkipTest("I don't have the energy to fight Windows semantics.")
         program = """\
 import os, threading, signal, time, sys
 import crochet
