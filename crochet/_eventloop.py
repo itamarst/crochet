@@ -428,7 +428,7 @@ class EventLoop(object):
         if iscoroutinefunction(function):
             # Create a non-async wrapper with same signature.
             @wraps(function)
-            def non_async_wrapper(*args, **kwargs):
+            def non_async_wrapper():
                 pass
         else:
             # Just use default behavior of looking at underlying object.
@@ -466,7 +466,7 @@ class EventLoop(object):
             if iscoroutinefunction(function):
                 # Create a non-async wrapper with same signature.
                 @wraps(function)
-                def non_async_wrapper(*args, **kwargs):
+                def non_async_wrapper():
                     pass
             else:
                 # Just use default behavior of looking at underlying object.
