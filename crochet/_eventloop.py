@@ -199,7 +199,7 @@ class EventualResult(object):
         """
         self._reactor.callFromThread(lambda: self._deferred.cancel())
 
-    def _result(self, timeout=None):
+    def _result(self, timeout):
         """
         Return the result, if available.
 
@@ -212,8 +212,6 @@ class EventualResult(object):
         returned on one call, additional calls will return/raise the same
         result.
         """
-        if timeout is None:
-            raise ValueError("Unlimited timeouts are no longer supported.")
         self._result_set.wait(timeout)
         # In Python 2.6 we can't rely on the return result of wait(), so we
         # have to check manually:
@@ -222,7 +220,7 @@ class EventualResult(object):
         self._result_retrieved = True
         return self._value
 
-    def wait(self, timeout=None):
+    def wait(self, timeout):
         """
         Return the result, or throw the exception if result is a failure.
 
