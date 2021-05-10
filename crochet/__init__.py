@@ -2,10 +2,6 @@
 Crochet: Use Twisted Anywhere!
 """
 
-from __future__ import absolute_import
-
-import sys
-
 from twisted.python.log import startLoggingWithObserver
 from twisted.python.runtime import platform
 
