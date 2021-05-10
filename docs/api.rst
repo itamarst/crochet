@@ -73,6 +73,10 @@ If we try to call the function with an invalid domain, we get back an exception:
     File "<string>", line 2, in raiseException
   twisted.names.error.DNSNameError: <Message id=36791 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query('doesnotexist', 1, 1)] authority=[<RR name= type=SOA class=IN ttl=1694s auth=False>]>
 
+You can, similarly, wrap an ``async`` function:
+
+.. literalinclude:: ../examples/async.py
+
 
 @run_in_reactor: Asynchronous results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -89,8 +93,9 @@ consequences:
 * When the function is called, the code will not run in the calling thread,
   but rather in the reactor thread.
 * The return result from a decorated function is an ``EventualResult``
-  instance, wrapping the result of the underlying code, with particular
-  support for ``Deferred`` instances.
+  instance, wrapping the result of the underlying code, with built-in
+  support for functions that return ``Deferred`` instances as well as
+  ``async`` functions.
 
 ``EventualResult`` has the following basic methods:
 

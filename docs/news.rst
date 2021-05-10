@@ -6,8 +6,10 @@ What's New
 
 New features:
 
-* Added support for Python 3.9.
+* It's possible to decorate ``async/await`` Twisted functions with ``@wait_for`` and ``@run_in_reactor``, thanks to Árni Már Jónsson.
 * Added type hints, thanks to Merlin Davis.
+* Added formal support for Python 3.9.
+
 
 Removed features:
 
