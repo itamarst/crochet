@@ -53,9 +53,6 @@ retrieve_result = _store.retrieve
 in_reactor = _main.in_reactor
 DeferredResult = EventualResult
 
-# Backwards compatibility with 1.1.0 and earlier:
-wait_for_reactor = _main.wait_for_reactor
-
 __all__ = [
     "setup",
     "run_in_reactor",

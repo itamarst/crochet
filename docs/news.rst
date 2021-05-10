@@ -11,6 +11,7 @@ New features:
 
 Removed features:
 
+* Dropped the deprecated ``wait_for_reactor`` and unlimited timeouts on ``EventualResult.wait()``.
 * Dropped support for Python 2.7 and 3.5.
 
 1.12.0
