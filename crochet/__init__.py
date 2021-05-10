@@ -17,15 +17,7 @@ from ._eventloop import TimeoutError  # pylint: disable=redefined-builtin
 from ._version import get_versions
 
 if platform.type == "posix":
-    try:
-        from twisted.internet.process import reapAllProcesses
-    except (SyntaxError, ImportError):
-        if sys.version_info < (3, 3, 0):
-            raise
-        else:
-            # Process support is still not ported to Python 3 on some versions
-            # of Twisted.
-            def reapAllProcesses(): pass
+    from twisted.internet.process import reapAllProcesses
 else:
     # waitpid() is only necessary on POSIX:
     def reapAllProcesses(): pass
