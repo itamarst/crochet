@@ -14,6 +14,7 @@ import tempfile
 import os
 import imp
 import inspect
+from unittest import SkipTest
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import succeed, Deferred, fail, CancelledError
@@ -26,7 +27,7 @@ from .._eventloop import (
 from .test_setup import FakeReactor
 from .. import (
     _main, setup, in_reactor, retrieve_result, _store, no_setup,
-    run_in_reactor, wait_for_reactor, wait_for)
+    run_in_reactor, wait_for)
 from ..tests import crochet_directory
 
 if platform.type == "posix":
@@ -79,9 +80,9 @@ class ResultRegistryTests(TestCase):
         er = EventualResult(succeed(123), None)
         registry.register(er)
         registry.stop()
-        self.assertEqual(er.wait(), 123)
-        self.assertEqual(er.wait(), 123)
-        self.assertEqual(er.wait(), 123)
+        self.assertEqual(er.wait(0.1), 123)
+        self.assertEqual(er.wait(0.1), 123)
+        self.assertEqual(er.wait(0.1), 123)
 
     def test_weakref(self):
         """
@@ -144,7 +145,7 @@ class EventualResultTests(TestCase):
         wait() returns the value the Deferred fired with.
         """
         dr = EventualResult(succeed(123), None)
-        self.assertEqual(dr.wait(), 123)
+        self.assertEqual(dr.wait(0.1), 123)
 
     def test_later_success_result(self):
         """
@@ -154,11 +155,11 @@ class EventualResultTests(TestCase):
         d = Deferred()
         dr = EventualResult(d, None)
         result_list = []
-        done = append_in_thread(result_list, dr.wait)
+        done = append_in_thread(result_list, dr.wait, 100)
         time.sleep(0.1)
         # At this point dr.wait() should have started:
         d.callback(345)
-        done.wait()
+        done.wait(100)
         self.assertEqual(result_list, [True, 345])
 
     def test_success_result_twice(self):
@@ -166,15 +167,15 @@ class EventualResultTests(TestCase):
         A second call to wait() returns same value as the first call.
         """
         dr = EventualResult(succeed(123), None)
-        self.assertEqual(dr.wait(), 123)
-        self.assertEqual(dr.wait(), 123)
+        self.assertEqual(dr.wait(0.1), 123)
+        self.assertEqual(dr.wait(0.1), 123)
 
     def test_failure_result(self):
         """
         wait() raises the exception the Deferred fired with.
         """
         dr = EventualResult(fail(RuntimeError()), None)
-        self.assertRaises(RuntimeError, dr.wait)
+        self.assertRaises(RuntimeError, dr.wait, 0.1)
 
     def test_later_failure_result(self):
         """
@@ -184,10 +185,10 @@ class EventualResultTests(TestCase):
         d = Deferred()
         dr = EventualResult(d, None)
         result_list = []
-        done = append_in_thread(result_list, dr.wait)
+        done = append_in_thread(result_list, dr.wait, 100)
         time.sleep(0.1)
         d.errback(RuntimeError())
-        done.wait()
+        done.wait(100)
         self.assertEqual(
             (result_list[0], result_list[1].__class__), (False, RuntimeError))
 
@@ -196,8 +197,8 @@ class EventualResultTests(TestCase):
         A second call to wait() raises same value as the first call.
         """
         dr = EventualResult(fail(ZeroDivisionError()), None)
-        self.assertRaises(ZeroDivisionError, dr.wait)
-        self.assertRaises(ZeroDivisionError, dr.wait)
+        self.assertRaises(ZeroDivisionError, dr.wait, 0.1)
+        self.assertRaises(ZeroDivisionError, dr.wait, 0.1)
 
     def test_timeout(self):
         """
@@ -226,8 +227,8 @@ class EventualResultTests(TestCase):
         dr = EventualResult(d, None)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.01)
         d.callback(u"value")
-        self.assertEqual(dr.wait(), u"value")
-        self.assertEqual(dr.wait(), u"value")
+        self.assertEqual(dr.wait(0.1), u"value")
+        self.assertEqual(dr.wait(0.1), u"value")
 
     def test_reactor_thread_disallowed(self):
         """
@@ -338,6 +339,8 @@ class EventualResultTests(TestCase):
         If you're wait()ing on an EventualResult in main thread, make sure the
         KeyboardInterrupt happens in timely manner.
         """
+        if platform.type != "posix":
+            raise SkipTest("I don't have the energy to fight Windows semantics.")
         program = """\
 import os, threading, signal, time, sys
 import crochet
@@ -367,9 +370,7 @@ d = Deferred()
 e = crochet.EventualResult(d, None)
 
 try:
-    # Queue.get() has special non-interruptible behavior if not given timeout,
-    # so don't give timeout here.
-    e.wait()
+    e.wait(10000)
 except KeyboardInterrupt:
     sys.exit(23)
 """
@@ -394,7 +395,7 @@ except KeyboardInterrupt:
         er._connect_deferred(d)
         self.assertRaises(TimeoutError, er.wait, 0)
         d.callback(123)
-        self.assertEqual(er.wait(), 123)
+        self.assertEqual(er.wait(0.1), 123)
 
     def test_reactor_stop_unblocks_EventualResult(self):
         """
@@ -556,7 +557,7 @@ EventualResult(Deferred(), None).wait(1.0)
         # we want to run .wait while the other thread has the lock acquired
         assertions.append((imp.lock_held(), True))
         try:
-            assertions.append((er.wait(), 123))
+            assertions.append((er.wait(0.1), 123))
         finally:
             test_complete.set()
 
@@ -768,7 +769,7 @@ class RunInReactorTests(TestCase):
         passthrough = self.make_wrapped_function()
         result = passthrough(succeed(123))
         self.assertIsInstance(result, EventualResult)
-        self.assertEqual(result.wait(), 123)
+        self.assertEqual(result.wait(0.1), 123)
 
     def test_deferred_failure_result(self):
         """
@@ -779,7 +780,7 @@ class RunInReactorTests(TestCase):
         passthrough = self.make_wrapped_function()
         result = passthrough(fail(ZeroDivisionError()))
         self.assertIsInstance(result, EventualResult)
-        self.assertRaises(ZeroDivisionError, result.wait)
+        self.assertRaises(ZeroDivisionError, result.wait, 0.1)
 
     def test_regular_result(self):
         """
@@ -789,7 +790,7 @@ class RunInReactorTests(TestCase):
         passthrough = self.make_wrapped_function()
         result = passthrough(123)
         self.assertIsInstance(result, EventualResult)
-        self.assertEqual(result.wait(), 123)
+        self.assertEqual(result.wait(0.1), 123)
 
     def test_exception_result(self):
         """
@@ -806,7 +807,7 @@ class RunInReactorTests(TestCase):
 
         result = raiser()
         self.assertIsInstance(result, EventualResult)
-        self.assertRaises(ZeroDivisionError, result.wait)
+        self.assertRaises(ZeroDivisionError, result.wait, 0.1)
 
     def test_registry(self):
         """
@@ -1014,6 +1015,8 @@ class WaitTestsMixin(object):
         A call to a decorated function responds to a Ctrl-C (i.e. with a
         KeyboardInterrupt) in a timely manner.
         """
+        if platform.type != "posix":
+            raise SkipTest("I don't have the energy to fight Windows semantics.")
         program = """\
 import os, threading, signal, time, sys
 import crochet
@@ -1081,16 +1084,6 @@ except crochet.ReactorStopped:
         process = subprocess.Popen([sys.executable, "-c", program],
                                    cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
-
-
-class WaitForReactorTests(WaitTestsMixin, TestCase):
-    """
-    Tests for the wait_for_reactor decorator.
-    """
-    DECORATOR_CALL = "wait_for_reactor"
-
-    def decorator(self):
-        return self.eventloop.wait_for_reactor
 
 
 class WaitForTests(WaitTestsMixin, TestCase):
@@ -1163,7 +1156,6 @@ class PublicAPITests(TestCase):
         self.assertEqual(_main.no_setup, no_setup)
         self.assertEqual(_main.in_reactor, in_reactor)
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
-        self.assertEqual(_main.wait_for_reactor, wait_for_reactor)
         self.assertEqual(_main.wait_for, wait_for)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
         self.assertIdentical(

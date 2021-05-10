@@ -154,7 +154,7 @@ class EventualResult(object):
         """
         self._reactor.callFromThread(lambda: self._deferred.cancel())
 
-    def _result(self, timeout=None):
+    def _result(self, timeout):
         """
         Return the result, if available.
 
@@ -167,13 +167,6 @@ class EventualResult(object):
         returned on one call, additional calls will return/raise the same
         result.
         """
-        if timeout is None:
-            warnings.warn(
-                "Unlimited timeouts are deprecated.",
-                DeprecationWarning,
-                stacklevel=3)
-            # Queue.get(None) won't get interrupted by Ctrl-C...
-            timeout = 2 ** 28
         self._result_set.wait(timeout)
         # In Python 2.6 we can't rely on the return result of wait(), so we
         # have to check manually:
@@ -182,7 +175,7 @@ class EventualResult(object):
         self._result_retrieved = True
         return self._value
 
-    def wait(self, timeout=None):
+    def wait(self, timeout):
         """
         Return the result, or throw the exception if result is a failure.
 
@@ -434,24 +427,6 @@ class EventLoop(object):
         except AttributeError:
             pass
         return result
-
-    def wait_for_reactor(self, function):
-        """
-        DEPRECATED, use wait_for(timeout) instead.
-
-        A decorator that ensures the wrapped function runs in the reactor
-        thread.
-
-        When the wrapped function is called, its result is returned or its
-        exception raised. Deferreds are handled transparently.
-        """
-        warnings.warn(
-            "@wait_for_reactor is deprecated, use @wait_for instead",
-            DeprecationWarning,
-            stacklevel=2)
-        # This will timeout, in theory. In practice the process will be dead
-        # long before that.
-        return self.wait_for(2**31)(function)
 
     def wait_for(self, timeout):
         """

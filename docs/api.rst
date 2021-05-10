@@ -47,12 +47,6 @@ deal with these issues is to decorate a function that calls Twisted APIs with
   any unused resources, close outgoing connections etc., but cancellation is
   not guaranteed and should not be relied on.
 
-.. note ::
-   ``wait_for`` was added to Crochet in v1.2.0. Prior releases provided a
-   similar API called ``wait_for_reactor`` which did not provide
-   timeouts. This older API still exists but is deprecated since waiting
-   indefinitely is a bad idea.
-
 To see what this means, let's return to the first example in the
 documentation:
 
