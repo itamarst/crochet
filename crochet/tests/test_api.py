@@ -585,8 +585,8 @@ class RunInReactorTests(TestCase):
         def some_name(arg1, arg2, karg1=2, *args, **kw):
             pass
         decorated = c.run_in_reactor(some_name)
-        self.assertEqual(inspect.getargspec(some_name),
-                         inspect.getargspec(decorated))
+        self.assertEqual(inspect.signature(some_name),
+                         inspect.signature(decorated))
 
     def test_name(self):
         """
@@ -771,6 +771,25 @@ class RunInReactorTests(TestCase):
         self.assertIdentical(wrapper.__wrapped__, func)
         self.assertIdentical(wrapper.wrapped_function, func)
 
+    def test_async_function(self):
+        """
+        Async functions can be wrapped with @run_in_reactor.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+        calls = []
+
+        @c.run_in_reactor
+        async def go():
+            self.assertTrue(myreactor.in_call_from_thread)
+            calls.append(1)
+            return 23
+
+        self.assertEqual((go().wait(0.1), go().wait(0.1)), (23, 23))
+        self.assertEqual(len(calls), 2)
+        self.assertFalse(inspect.iscoroutinefunction(go))
+
 
 class WaitTests(TestCase):
     """
@@ -825,8 +844,8 @@ class WaitTests(TestCase):
         def some_name(arg1, arg2, karg1=2, *args, **kw):
             pass
         decorated = decorator(some_name)
-        self.assertEqual(inspect.getargspec(some_name),
-                         inspect.getargspec(decorated))
+        self.assertEqual(inspect.signature(some_name),
+                         inspect.signature(decorated))
 
     def test_wrapped_function(self):
         """
@@ -1044,6 +1063,18 @@ except crochet.ReactorStopped:
 
         self.assertRaises(TimeoutError, times_out)
         self.assertIsInstance(error[0].value, CancelledError)
+
+    def test_async_function(self):
+        """
+        Async functions can be wrapped with @wait_for.
+        """
+        @self.eventloop.wait_for(timeout=0.1)
+        async def go():
+            self.assertTrue(self.reactor.in_call_from_thread)
+            return 17
+
+        self.assertEqual((go(), go()), (17, 17))
+        self.assertFalse(inspect.iscoroutinefunction(go))
 
 
 class PublicAPITests(TestCase):
