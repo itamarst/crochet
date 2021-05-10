@@ -495,4 +495,4 @@ def _assert_mypy(expect_success: bool, source_code: str) -> None:
                 status == 0
             ), f"Unexpected mypy failure (status {status}):\n{indent(out, ' ' * 2)}"
         else:
-            assert status == 1, "Unexpected mypy success."
+            assert status == 1, f"Unexpected mypy success: stdout: {out}\nstderr: {err}\n"
