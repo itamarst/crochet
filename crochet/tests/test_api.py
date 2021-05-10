@@ -26,7 +26,7 @@ from .._eventloop import (
     EventLoop, EventualResult, TimeoutError, ResultRegistry, ReactorStopped)
 from .test_setup import FakeReactor
 from .. import (
-    _main, setup, in_reactor, retrieve_result, _store, no_setup,
+    _main, setup, retrieve_result, _store, no_setup,
     run_in_reactor, wait_for)
 from ..tests import crochet_directory
 
@@ -570,74 +570,6 @@ EventualResult(Deferred(), None).wait(1.0)
         [self.assertEqual(result, expected) for result, expected in assertions]
 
 
-class InReactorTests(TestCase):
-    """
-    Tests for the deprecated in_reactor decorator.
-    """
-
-    def test_name(self):
-        """
-        The function decorated with in_reactor has the same name as the
-        original function.
-        """
-        c = EventLoop(lambda: FakeReactor(), lambda f, g: None)
-
-        @c.in_reactor
-        def some_name(reactor):
-            pass
-
-        self.assertEqual(some_name.__name__, "some_name")
-
-    def test_in_reactor_thread(self):
-        """
-        The function decorated with in_reactor is run in the reactor
-        thread, and takes the reactor as its first argument.
-        """
-        myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
-        c.no_setup()
-
-        calls = []
-
-        @c.in_reactor
-        def func(reactor, a, b, c):
-            self.assertIdentical(reactor, myreactor)
-            self.assertTrue(reactor.in_call_from_thread)
-            calls.append((a, b, c))
-
-        func(1, 2, c=3)
-        self.assertEqual(calls, [(1, 2, 3)])
-
-    def test_run_in_reactor_wrapper(self):
-        """
-        in_reactor is implemented on top of run_in_reactor.
-        """
-        wrapped = [False]
-
-        def fake_run_in_reactor(function):
-            def wrapper(*args, **kwargs):
-                wrapped[0] = True
-                result = function(*args, **kwargs)
-                wrapped[0] = False
-                return result
-
-            return wrapper
-
-        myreactor = FakeReactor()
-        c = EventLoop(lambda: myreactor, lambda f, g: None)
-        c.no_setup()
-        c.run_in_reactor = fake_run_in_reactor
-
-        @c.in_reactor
-        def func(reactor):
-            self.assertTrue(wrapped[0])
-            return 17
-
-        result = func()
-        self.assertFalse(wrapped[0])
-        self.assertEqual(result, 17)
-
-
 class RunInReactorTests(TestCase):
     """
     Tests for the run_in_reactor decorator.
@@ -653,8 +585,8 @@ class RunInReactorTests(TestCase):
         def some_name(arg1, arg2, karg1=2, *args, **kw):
             pass
         decorated = c.run_in_reactor(some_name)
-        self.assertEqual(inspect.getargspec(some_name),
-                         inspect.getargspec(decorated))
+        self.assertEqual(inspect.signature(some_name),
+                         inspect.signature(decorated))
 
     def test_name(self):
         """
@@ -827,8 +759,7 @@ class RunInReactorTests(TestCase):
     def test_wrapped_function(self):
         """
         The function wrapped by @run_in_reactor can be accessed via the
-        `__wrapped__` attribute and the `wrapped_function` attribute
-        (deprecated, and not always available).
+        `__wrapped__` attribute.
         """
         c = EventLoop(lambda: None, lambda f, g: None)
 
@@ -837,12 +768,30 @@ class RunInReactorTests(TestCase):
 
         wrapper = c.run_in_reactor(func)
         self.assertIdentical(wrapper.__wrapped__, func)
-        self.assertIdentical(wrapper.wrapped_function, func)
+
+    def test_async_function(self):
+        """
+        Async functions can be wrapped with @run_in_reactor.
+        """
+        myreactor = FakeReactor()
+        c = EventLoop(lambda: myreactor, lambda f, g: None)
+        c.no_setup()
+        calls = []
+
+        @c.run_in_reactor
+        async def go():
+            self.assertTrue(myreactor.in_call_from_thread)
+            calls.append(1)
+            return 23
+
+        self.assertEqual((go().wait(0.1), go().wait(0.1)), (23, 23))
+        self.assertEqual(len(calls), 2)
+        self.assertFalse(inspect.iscoroutinefunction(go))
 
 
-class WaitTestsMixin(object):
+class WaitTests(TestCase):
     """
-    Tests mixin for the wait_for_reactor/wait_for decorators.
+    Tests for wait_for decorators.
     """
 
     def setUp(self):
@@ -850,12 +799,10 @@ class WaitTestsMixin(object):
         self.eventloop = EventLoop(lambda: self.reactor, lambda f, g: None)
         self.eventloop.no_setup()
 
+    DECORATOR_CALL = "wait_for(timeout=5)"
+
     def decorator(self):
-        """
-        Return a callable that decorates a function, using the decorator being
-        tested.
-        """
-        raise NotImplementedError()
+        return lambda func: self.eventloop.wait_for(timeout=5)(func)
 
     def make_wrapped_function(self):
         """
@@ -895,13 +842,13 @@ class WaitTestsMixin(object):
         def some_name(arg1, arg2, karg1=2, *args, **kw):
             pass
         decorated = decorator(some_name)
-        self.assertEqual(inspect.getargspec(some_name),
-                         inspect.getargspec(decorated))
+        self.assertEqual(inspect.signature(some_name),
+                         inspect.signature(decorated))
 
     def test_wrapped_function(self):
         """
         The function wrapped by the wait decorator can be accessed via the
-        `__wrapped__`, and the deprecated `wrapped_function` attribute.
+        `__wrapped__` attribute.
         """
         decorator = self.decorator()
 
@@ -910,7 +857,6 @@ class WaitTestsMixin(object):
 
         wrapper = decorator(func)
         self.assertIdentical(wrapper.__wrapped__, func)
-        self.assertIdentical(wrapper.wrapped_function, func)
 
     def test_reactor_thread_disallowed(self):
         """
@@ -1085,16 +1031,6 @@ except crochet.ReactorStopped:
                                    cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
 
-
-class WaitForTests(WaitTestsMixin, TestCase):
-    """
-    Tests for the wait_for_reactor decorator.
-    """
-    DECORATOR_CALL = "wait_for(timeout=5)"
-
-    def decorator(self):
-        return lambda func: self.eventloop.wait_for(timeout=5)(func)
-
     def test_timeoutRaises(self):
         """
         If a function wrapped with wait_for hits the timeout, it raises
@@ -1125,6 +1061,18 @@ class WaitForTests(WaitTestsMixin, TestCase):
         self.assertRaises(TimeoutError, times_out)
         self.assertIsInstance(error[0].value, CancelledError)
 
+    def test_async_function(self):
+        """
+        Async functions can be wrapped with @wait_for.
+        """
+        @self.eventloop.wait_for(timeout=0.1)
+        async def go():
+            self.assertTrue(self.reactor.in_call_from_thread)
+            return 17
+
+        self.assertEqual((go(), go()), (17, 17))
+        self.assertFalse(inspect.iscoroutinefunction(go))
+
 
 class PublicAPITests(TestCase):
     """
@@ -1154,7 +1102,6 @@ class PublicAPITests(TestCase):
         self.assertIsInstance(_main, EventLoop)
         self.assertEqual(_main.setup, setup)
         self.assertEqual(_main.no_setup, no_setup)
-        self.assertEqual(_main.in_reactor, in_reactor)
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
         self.assertEqual(_main.wait_for, wait_for)
         self.assertIdentical(_main._atexit_register, _shutdown.register)

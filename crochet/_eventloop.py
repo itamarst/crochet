@@ -8,13 +8,14 @@ import select
 import threading
 import weakref
 import warnings
+from inspect import iscoroutinefunction
 from functools import wraps
 
 from twisted.python import threadable
 from twisted.python.runtime import platform
 from twisted.python.failure import Failure
 from twisted.python.log import PythonLoggingObserver, err
-from twisted.internet.defer import maybeDeferred
+from twisted.internet.defer import maybeDeferred, ensureDeferred
 from twisted.internet.task import LoopingCall
 
 import wrapt
@@ -395,24 +396,6 @@ class EventLoop(object):
                 "using crochet are imported and call setup().")
         self._common_setup()
 
-    @wrapt.decorator
-    def _run_in_reactor(self, function, _, args, kwargs):
-        """
-        Implementation: A decorator that ensures the wrapped function runs in
-        the reactor thread.
-
-        When the wrapped function is called, an EventualResult is returned.
-        """
-
-        def runs_in_reactor(result, args, kwargs):
-            d = maybeDeferred(function, *args, **kwargs)
-            result._connect_deferred(d)
-
-        result = EventualResult(None, self._reactor)
-        self._registry.register(result)
-        self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
-        return result
-
     def run_in_reactor(self, function):
         """
         A decorator that ensures the wrapped function runs in the
@@ -420,13 +403,38 @@ class EventLoop(object):
 
         When the wrapped function is called, an EventualResult is returned.
         """
-        result = self._run_in_reactor(function)
-        # Backwards compatibility; use __wrapped__ instead.
-        try:
-            result.wrapped_function = function
-        except AttributeError:
-            pass
-        return result
+        def _run_in_reactor(wrapped, _, args, kwargs):
+            """
+            Implementation: A decorator that ensures the wrapped function runs in
+            the reactor thread.
+
+            When the wrapped function is called, an EventualResult is returned.
+            """
+
+            if iscoroutinefunction(wrapped):
+                def runs_in_reactor(result, args, kwargs):
+                    d = ensureDeferred(wrapped(*args, **kwargs))
+                    result._connect_deferred(d)
+            else:
+                def runs_in_reactor(result, args, kwargs):
+                    d = maybeDeferred(wrapped, *args, **kwargs)
+                    result._connect_deferred(d)
+
+            result = EventualResult(None, self._reactor)
+            self._registry.register(result)
+            self._reactor.callFromThread(runs_in_reactor, result, args, kwargs)
+            return result
+
+        if iscoroutinefunction(function):
+            # Create a non-async wrapper with same signature.
+            @wraps(function)
+            def non_async_wrapper():
+                pass
+        else:
+            # Just use default behavior of looking at underlying object.
+            non_async_wrapper = None
+
+        return wrapt.decorator(_run_in_reactor, adapter=non_async_wrapper)(function)
 
     def wait_for(self, timeout):
         """
@@ -440,11 +448,13 @@ class EventLoop(object):
         """
 
         def decorator(function):
-            @wrapt.decorator
             def wrapper(function, _, args, kwargs):
                 @self.run_in_reactor
                 def run():
-                    return function(*args, **kwargs)
+                    if iscoroutinefunction(function):
+                        return ensureDeferred(function(*args, **kwargs))
+                    else:
+                        return function(*args, **kwargs)
 
                 eventual_result = run()
                 try:
@@ -453,37 +463,16 @@ class EventLoop(object):
                     eventual_result.cancel()
                     raise
 
-            result = wrapper(function)
-            # Expose underling function for testing purposes; this attribute is
-            # deprecated, use __wrapped__ instead:
-            try:
-                result.wrapped_function = function
-            except AttributeError:
-                pass
-            return result
+            if iscoroutinefunction(function):
+                # Create a non-async wrapper with same signature.
+                @wraps(function)
+                def non_async_wrapper():
+                    pass
+            else:
+                # Just use default behavior of looking at underlying object.
+                non_async_wrapper = None
+
+            wrapper = wrapt.decorator(wrapper, adapter=non_async_wrapper)
+            return wrapper(function)
 
         return decorator
-
-    def in_reactor(self, function):
-        """
-        DEPRECATED, use run_in_reactor.
-
-        A decorator that ensures the wrapped function runs in the reactor
-        thread.
-
-        The wrapped function will get the reactor passed in as a first
-        argument, in addition to any arguments it is called with.
-
-        When the wrapped function is called, an EventualResult is returned.
-        """
-        warnings.warn(
-            "@in_reactor is deprecated, use @run_in_reactor",
-            DeprecationWarning,
-            stacklevel=2)
-
-        @self.run_in_reactor
-        @wraps(function)
-        def add_reactor(*args, **kwargs):
-            return function(self._reactor, *args, **kwargs)
-
-        return add_reactor

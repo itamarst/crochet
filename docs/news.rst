@@ -6,12 +6,14 @@ What's New
 
 New features:
 
-* Added support for Python 3.9.
+* It's possible to decorate ``async/await`` Twisted functions with ``@wait_for`` and ``@run_in_reactor``, thanks to Árni Már Jónsson.
 * Added type hints, thanks to Merlin Davis.
+* Added formal support for Python 3.9.
+
 
 Removed features:
 
-* Dropped the deprecated ``wait_for_reactor`` and unlimited timeouts on ``EventualResult.wait()``.
+* Dropped the deprecated APIs ``@wait_for_reactor``, ``@in_reactor``, ``DeferredResult``, the ``wrapped_function`` attribute, and unlimited timeouts on ``EventualResult.wait()``.
 * Dropped support for Python 2.7 and 3.5.
 
 1.12.0
