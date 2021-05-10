@@ -434,14 +434,7 @@ class EventLoop(object):
             # Just use default behavior of looking at underlying object.
             non_async_wrapper = None
 
-        result = wrapt.decorator(_run_in_reactor, adapter=non_async_wrapper)(function)
-
-        # Backwards compatibility; use __wrapped__ instead.
-        try:
-            result.wrapped_function = function
-        except AttributeError:
-            pass
-        return result
+        return wrapt.decorator(_run_in_reactor, adapter=non_async_wrapper)(function)
 
     def wait_for(self, timeout):
         """
@@ -480,13 +473,6 @@ class EventLoop(object):
                 non_async_wrapper = None
 
             wrapper = wrapt.decorator(wrapper, adapter=non_async_wrapper)
-            result = wrapper(function)
-            # Expose underling function for testing purposes; this attribute is
-            # deprecated, use __wrapped__ instead:
-            try:
-                result.wrapped_function = function
-            except AttributeError:
-                pass
-            return result
+            return wrapper(function)
 
         return decorator

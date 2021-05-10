@@ -759,8 +759,7 @@ class RunInReactorTests(TestCase):
     def test_wrapped_function(self):
         """
         The function wrapped by @run_in_reactor can be accessed via the
-        `__wrapped__` attribute and the `wrapped_function` attribute
-        (deprecated, and not always available).
+        `__wrapped__` attribute.
         """
         c = EventLoop(lambda: None, lambda f, g: None)
 
@@ -769,7 +768,6 @@ class RunInReactorTests(TestCase):
 
         wrapper = c.run_in_reactor(func)
         self.assertIdentical(wrapper.__wrapped__, func)
-        self.assertIdentical(wrapper.wrapped_function, func)
 
     def test_async_function(self):
         """
@@ -850,7 +848,7 @@ class WaitTests(TestCase):
     def test_wrapped_function(self):
         """
         The function wrapped by the wait decorator can be accessed via the
-        `__wrapped__`, and the deprecated `wrapped_function` attribute.
+        `__wrapped__` attribute.
         """
         decorator = self.decorator()
 
@@ -859,7 +857,6 @@ class WaitTests(TestCase):
 
         wrapper = decorator(func)
         self.assertIdentical(wrapper.__wrapped__, func)
-        self.assertIdentical(wrapper.wrapped_function, func)
 
     def test_reactor_thread_disallowed(self):
         """
