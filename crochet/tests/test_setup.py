@@ -375,4 +375,4 @@ WARNING logger-warning
 DEBUG logger-debug
 INFO log-info
 CRITICAL log-error
-""", output.decode("utf-8"))
+""", output.decode("utf-8").replace("\r\n", "\n"))
