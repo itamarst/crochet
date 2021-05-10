@@ -26,7 +26,7 @@ from .._eventloop import (
     EventLoop, EventualResult, TimeoutError, ResultRegistry, ReactorStopped)
 from .test_setup import FakeReactor
 from .. import (
-    _main, setup, in_reactor, retrieve_result, _store, no_setup,
+    _main, setup, retrieve_result, _store, no_setup,
     run_in_reactor, wait_for)
 from ..tests import crochet_directory
 
@@ -772,9 +772,9 @@ class RunInReactorTests(TestCase):
         self.assertIdentical(wrapper.wrapped_function, func)
 
 
-class WaitTestsMixin(object):
+class WaitTests(TestCase):
     """
-    Tests mixin for the wait_for_reactor/wait_for decorators.
+    Tests for wait_for decorators.
     """
 
     def setUp(self):
@@ -782,12 +782,10 @@ class WaitTestsMixin(object):
         self.eventloop = EventLoop(lambda: self.reactor, lambda f, g: None)
         self.eventloop.no_setup()
 
+    DECORATOR_CALL = "wait_for(timeout=5)"
+
     def decorator(self):
-        """
-        Return a callable that decorates a function, using the decorator being
-        tested.
-        """
-        raise NotImplementedError()
+        return lambda func: self.eventloop.wait_for(timeout=5)(func)
 
     def make_wrapped_function(self):
         """
@@ -1017,16 +1015,6 @@ except crochet.ReactorStopped:
                                    cwd=crochet_directory)
         self.assertEqual(process.wait(), 23)
 
-
-class WaitForTests(WaitTestsMixin, TestCase):
-    """
-    Tests for the wait_for_reactor decorator.
-    """
-    DECORATOR_CALL = "wait_for(timeout=5)"
-
-    def decorator(self):
-        return lambda func: self.eventloop.wait_for(timeout=5)(func)
-
     def test_timeoutRaises(self):
         """
         If a function wrapped with wait_for hits the timeout, it raises
@@ -1086,7 +1074,6 @@ class PublicAPITests(TestCase):
         self.assertIsInstance(_main, EventLoop)
         self.assertEqual(_main.setup, setup)
         self.assertEqual(_main.no_setup, no_setup)
-        self.assertEqual(_main.in_reactor, in_reactor)
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
         self.assertEqual(_main.wait_for, wait_for)
         self.assertIdentical(_main._atexit_register, _shutdown.register)
