@@ -338,6 +338,8 @@ class EventualResultTests(TestCase):
         If you're wait()ing on an EventualResult in main thread, make sure the
         KeyboardInterrupt happens in timely manner.
         """
+        if platform.type != "posix":
+            raise SkipTest("I don't have the energy to fight Windows semantics.")
         program = """\
 import os, threading, signal, time, sys
 import crochet
