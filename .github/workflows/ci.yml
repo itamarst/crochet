@@ -19,7 +19,7 @@ jobs:
         include:
           - python-version: "3.6"
             architecture: "x86"
-            platform: ["windows-latest"]
+            platform: "windows-latest"
 
     runs-on: "${{ matrix.platform }}"
 
