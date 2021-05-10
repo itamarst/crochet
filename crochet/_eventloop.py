@@ -4,7 +4,6 @@ Expose Twisted's event loop to threaded programs.
 
 from __future__ import absolute_import
 
-import sys
 import select
 import threading
 import weakref
@@ -23,51 +22,7 @@ import wrapt
 from ._util import synchronized
 from ._resultstore import ResultStore
 
-if sys.version_info <= (3, 3):
-    import imp
-
-    def _check_import_lock():
-        if not imp.lock_held():
-            return
-
-        try:
-            imp.release_lock()
-        except RuntimeError:
-            # The lock is held by some other thread. We should be safe
-            # to continue.
-            return
-
-        # If EventualResult.wait() is run during module import, if the
-        # Twisted code that is being run also imports something the
-        # result will be a deadlock. Even if that is not an issue it
-        # would prevent importing in other threads until the call
-        # returns.
-        raise RuntimeError(
-            "EventualResult.wait() must not be run at module "
-            "import time.")
-else:
-    def _check_import_lock():
-        pass
-
 _store = ResultStore()
-
-if hasattr(weakref, "WeakSet"):
-    WeakSet = weakref.WeakSet
-else:
-
-    class WeakSet(object):
-        """
-        Minimal WeakSet emulation.
-        """
-
-        def __init__(self):
-            self._items = weakref.WeakKeyDictionary()
-
-        def add(self, value):
-            self._items[value] = True
-
-        def __iter__(self):
-            return iter(self._items)
 
 
 class TimeoutError(Exception):  # pylint: disable=redefined-builtin
@@ -97,7 +52,7 @@ class ResultRegistry(object):
     """
 
     def __init__(self):
-        self._results = WeakSet()
+        self._results = weakref.WeakSet()
         self._stopped = False
         self._lock = threading.Lock()
 
@@ -244,8 +199,6 @@ class EventualResult(object):
             raise RuntimeError(
                 "EventualResult.wait() must not be run in the reactor thread.")
 
-        _check_import_lock()
-
         result = self._result(timeout)
         if isinstance(result, Failure):
             result.raiseException()
@@ -286,6 +239,9 @@ class ThreadLogObserver(object):
 
     In particular, used to wrap PythonLoggingObserver, so that blocking
     logging.py Handlers don't block the event loop.
+
+    Once Python 3.6 support is dropped, this can use a queue.SimpleQueue object
+    instead of a whole 'nother event loop.
     """
 
     def __init__(self, observer):

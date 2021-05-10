@@ -360,8 +360,7 @@ def interrupt():
     # Still running, test shall fail...
     os.kill(os.getpid(), sig_kill)
 
-t = threading.Thread(target=interrupt)
-t.setDaemon(True)
+t = threading.Thread(target=interrupt, daemon=True)
 t.start()
 
 d = Deferred()
@@ -1037,8 +1036,7 @@ def interrupt():
     # Still running, test shall fail...
     os.kill(os.getpid(), sig_kill)
 
-t = threading.Thread(target=interrupt)
-t.setDaemon(True)
+t = threading.Thread(target=interrupt, daemon=True)
 t.start()
 
 @crochet.%s
