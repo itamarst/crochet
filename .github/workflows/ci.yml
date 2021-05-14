@@ -1,0 +1,43 @@
+---
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: "Python ${{ matrix.python-version }} ${{ matrix.platform }} ${{ matrix.architecture }}"
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10-dev", "pypy3"]
+        architecture: ["x64"]
+        platform: ["ubuntu-latest"]
+        include:
+          - python-version: "3.6"
+            architecture: "x86"
+            platform: "windows-latest"
+          - python-version: "3.6"
+            architecture: "x64"
+            platform: "windows-latest"
+
+    runs-on: "${{ matrix.platform }}"
+
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-python@v2"
+        with:
+          python-version: "${{ matrix.python-version }}"
+          architecture: "${{ matrix.architecture }}"
+      - name: "Install dependencies"
+        run: |
+          python -VV
+          python -m site
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade virtualenv tox tox-gh-actions          
+
+      - name: "Run tox targets for ${{ matrix.python-version }}"
+        run: "python -m tox"

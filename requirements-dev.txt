@@ -1,2 +1,6 @@
-Twisted>=11.1.0
 sphinx
+tox
+tox-gh-actions
+mypy
+flake8
+pylint

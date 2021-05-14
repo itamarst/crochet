@@ -10,7 +10,7 @@ def read(path):
     """
     Read the contents of a file.
     """
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -20,11 +20,10 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
@@ -32,12 +31,14 @@ setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description="Use Twisted anywhere!",
+    python_requires=">=3.6.0",
     install_requires=[
         "Twisted>=16.0",
         "wrapt",
     ],
     keywords="twisted threading",
     license="MIT",
+    package_data={"crochet": ["py.typed", "*.pyi"]},
     packages=["crochet", "crochet.tests"],
     url="https://github.com/itamarst/crochet",
     maintainer='Itamar Turner-Trauring',

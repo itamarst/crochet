@@ -20,6 +20,15 @@ Run on the command line::
   $ python blockingdns.py twistedmatrix.com
   twistedmatrix.com -> 66.35.39.66
 
+You can also wrap ``async`` functions.
+Here is the equivalent code to the previous example, but using an ``async/await`` function:
+
+.. code-block:: python
+
+   @wait_for(timeout=5.0)
+   async def gethostbyname(name):
+       result = await client.lookupAddress(name)
+       return result[0][0].payload.dottedQuad()
 
 Table of Contents
 ^^^^^^^^^^^^^^^^^
@@ -30,6 +39,7 @@ Table of Contents
    introduction
    api
    using
+   type-checking
    workarounds
    async
    api-reference

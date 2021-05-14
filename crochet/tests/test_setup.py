@@ -248,6 +248,8 @@ class ProcessSetupTests(TestCase):
         On POSIX systems, setup() installs a LoopingCall that runs
         t.i.process.reapAllProcesses() 10 times a second.
         """
+        if platform.type != "posix":
+            raise SkipTest("SIGCHLD is a POSIX-specific issue")
         reactor = FakeReactor()
         reaps = []
         s = EventLoop(
@@ -261,9 +263,6 @@ class ProcessSetupTests(TestCase):
         self.assertEquals(reaps, [1, 1])
         reactor.advance(0.1)
         self.assertEquals(reaps, [1, 1, 1])
-
-    if platform.type != "posix":
-        test_posix.skip = "SIGCHLD is a POSIX-specific issue"
 
     def test_non_posix(self):
         """
@@ -375,4 +374,4 @@ WARNING logger-warning
 DEBUG logger-debug
 INFO log-info
 CRITICAL log-error
-""", output.decode("utf-8"))
+""", output.decode("utf-8").replace("\r\n", "\n"))
