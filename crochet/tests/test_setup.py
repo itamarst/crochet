@@ -258,11 +258,11 @@ class ProcessSetupTests(TestCase):
             reapAllProcesses=lambda: reaps.append(1))
         s.setup()
         reactor.advance(0.1)
-        self.assertEquals(reaps, [1])
+        self.assertEqual(reaps, [1])
         reactor.advance(0.1)
-        self.assertEquals(reaps, [1, 1])
+        self.assertEqual(reaps, [1, 1])
         reactor.advance(0.1)
-        self.assertEquals(reaps, [1, 1, 1])
+        self.assertEqual(reaps, [1, 1, 1])
 
     def test_non_posix(self):
         """
