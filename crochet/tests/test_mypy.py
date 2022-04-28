@@ -1,7 +1,6 @@
 """
 Tests for crochet.mypy.
 """
-from tempfile import NamedTemporaryFile
 from textwrap import dedent, indent
 from unittest import TestCase, skipUnless
 
@@ -479,11 +478,8 @@ class MypyTests(TestCase):
 
 
 def _assert_mypy(expect_success: bool, source_code: str) -> None:
-    with NamedTemporaryFile(mode="w+t", delete=False) as config_file:
-        config_file.write(MYPY_CONFIG)
-
     out, err, status = mypy.api.run(
-        ["--config-file", config_file.name, "-c", source_code]
+        ["-c", source_code]
     )
     if status not in (0, 1):
         raise RuntimeError(

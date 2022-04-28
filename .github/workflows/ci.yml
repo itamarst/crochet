@@ -13,7 +13,7 @@ jobs:
     name: "Python ${{ matrix.python-version }} ${{ matrix.platform }} ${{ matrix.architecture }}"
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10-dev", "pypy3"]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "pypy3"]
         architecture: ["x64"]
         platform: ["ubuntu-latest"]
         include:

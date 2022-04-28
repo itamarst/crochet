@@ -2,5 +2,6 @@ sphinx
 tox
 tox-gh-actions
 mypy
+typing-extensions
 flake8
 pylint
