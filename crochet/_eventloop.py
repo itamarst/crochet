@@ -132,13 +132,13 @@ class EventualResult(object):
         Deferred firing, or as a result of ResultRegistry.stop(). So, no need
         for thread-safety.
         """
-        if self._result_set.isSet():
+        if self._result_set.is_set():
             return
         self._value = result
         self._result_set.set()
 
     def __del__(self):
-        if self._result_retrieved or not self._result_set.isSet():
+        if self._result_retrieved or not self._result_set.is_set():
             return
         if isinstance(self._value, Failure):
             err(self._value, "Unhandled error in EventualResult")

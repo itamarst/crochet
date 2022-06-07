@@ -1,16 +1,17 @@
-import sys
-
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, overload, TypeVar, Union
+from typing_extensions import ParamSpec
+from twisted.internet.defer import Deferred
 from twisted.python.failure import Failure
 
 _T = TypeVar("_T")
 _T_co = TypeVar("_T_co", covariant=True)
-_F = TypeVar("_F", bound=Callable[..., Any])
+_P = ParamSpec("_P")
+
 
 def setup() -> None: ...
 def run_in_reactor(
-    function: Callable[..., _T]
-) -> Callable[..., EventualResult[_T]]: ...
+    function: Callable[_P, _T]
+) -> Callable[_P, EventualResult[_T]]: ...
 
 class EventualResult(Generic[_T_co]):
     def cancel(self) -> None: ...
@@ -22,7 +23,37 @@ class TimeoutError(Exception): ...
 
 def retrieve_result(result_id: int) -> EventualResult[object]: ...
 def no_setup() -> None: ...
-def wait_for(timeout: float) -> Callable[[_F], _F]: ...
+
+
+@overload
+def wait_for_x(f: Callable[_P, Deferred[_T]]) -> Callable[_P, _T]:
+    ...
+
+@overload
+def wait_for_x(f: Callable[_P, Coroutine[None, None, _T]]) -> Callable[_P, _T]:
+    ...
+
+
+@overload
+def wait_for_x(f: Callable[_P, _T]) -> Callable[_P, _T]:
+    ...
+
+
+@overload
+def wait_for(f: float) -> Callable[[Callable[_P, Deferred[_T]]], Callable[_P, _T]]:
+    ...
+
+@overload
+def wait_for(f: float) -> Callable[[Callable[_P, Coroutine[None, None, _T]]], Callable[_P, _T]]:
+    ...
+
+
+@overload
+def wait_for(f: float) -> Callable[[Callable[_P, _T]], Callable[_P, _T]]:
+    ...
+
+
+
 
 class ReactorStopped(Exception): ...
 

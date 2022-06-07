@@ -1,7 +1,6 @@
 """
 Tests for crochet.mypy.
 """
-from tempfile import NamedTemporaryFile
 from textwrap import dedent, indent
 from unittest import TestCase, skipUnless
 
@@ -10,13 +9,6 @@ try:
     MYPY_AVAILABLE = True
 except ImportError:
     MYPY_AVAILABLE = False
-
-MYPY_CONFIG = dedent(
-    """\
-    [mypy]
-    plugins = crochet.mypy
-    """
-)
 
 
 @skipUnless(MYPY_AVAILABLE, "Tests require mypy to be installed.")
@@ -437,6 +429,7 @@ class MypyTests(TestCase):
         template = dedent(
             """\
             from typing import Callable
+            from twisted.internet.defer import Deferred
             from crochet import wait_for
 
             class Thing:
@@ -446,7 +439,17 @@ class MypyTests(TestCase):
             def foo(x: int, y: str, z: float) -> Thing:
                 return Thing()
 
+            @wait_for(1)
+            def bar(x: int, y: str, z: float) -> Deferred[Thing]:
+                return Deferred.succeed(Thing())
+
+            @wait_for(1)
+            async def zoo(x: int, y: str, z: float) -> Thing:
+                return await Deferred.succeed(Thing())
+
             re_foo: {result_type} = foo
+            re_bar: {result_type} = bar
+            re_zoo: {result_type} = zoo
             """
         )
         for result_type, good in (
@@ -479,12 +482,10 @@ class MypyTests(TestCase):
 
 
 def _assert_mypy(expect_success: bool, source_code: str) -> None:
-    with NamedTemporaryFile(mode="w+t", delete=False) as config_file:
-        config_file.write(MYPY_CONFIG)
-
     out, err, status = mypy.api.run(
-        ["--config-file", config_file.name, "-c", source_code]
+        ["--strict", "-c", source_code]
     )
+
     if status not in (0, 1):
         raise RuntimeError(
             f"Unexpected mypy error (status {status}):\n{indent(err, ' ' * 2)}"
