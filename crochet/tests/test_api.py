@@ -12,7 +12,6 @@ import sys
 import weakref
 import tempfile
 import os
-import imp
 import inspect
 from unittest import SkipTest
 
@@ -524,50 +523,6 @@ from twisted.internet.defer import Deferred
 EventualResult(Deferred(), None).wait(1.0)
 """)
         self.assertRaises(RuntimeError, __import__, "shouldbeunimportable")
-
-    def test_waiting_during_different_thread_importing(self):
-        """
-        EventualResult.wait() should work if called while a module is
-        being imported in a different thread. See
-        EventualResultTests.test_noWaitingDuringImport for the explanation of
-        what should happen if an import is happening in the current thread.
-        """
-        test_complete = threading.Event()
-        lock_held = threading.Event()
-        er = EventualResult(succeed(123), None)
-
-        def other_thread():
-            imp.acquire_lock()
-            lock_held.set()
-            test_complete.wait()
-            imp.release_lock()
-
-        t = threading.Thread(target=other_thread)
-        t.start()
-        lock_held.wait()
-
-        # While the imp lock is held by the other thread, we can't
-        # allow exceptions/assertions to happen because trial will
-        # try to do an import causing a deadlock instead of a
-        # failure. We collect all assertion pairs (result, expected),
-        # wait for the import lock to be released, and then check our
-        # assertions at the end of the test.
-        assertions = []
-
-        # we want to run .wait while the other thread has the lock acquired
-        assertions.append((imp.lock_held(), True))
-        try:
-            assertions.append((er.wait(0.1), 123))
-        finally:
-            test_complete.set()
-
-        assertions.append((imp.lock_held(), True))
-
-        test_complete.set()
-
-        t.join()
-
-        [self.assertEqual(result, expected) for result, expected in assertions]
 
 
 class RunInReactorTests(TestCase):
