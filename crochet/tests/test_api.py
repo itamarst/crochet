@@ -25,7 +25,7 @@ from .._eventloop import (
     EventLoop, EventualResult, TimeoutError, ResultRegistry, ReactorStopped)
 from .test_setup import FakeReactor
 from .. import (
-    _main, setup, retrieve_result, _store, no_setup,
+    _main, setup as setup_crochet, retrieve_result, _store, no_setup,
     run_in_reactor, wait_for)
 from ..tests import crochet_directory
 
@@ -1055,7 +1055,7 @@ class PublicAPITests(TestCase):
         from twisted.python.log import startLoggingWithObserver
         from crochet import _shutdown
         self.assertIsInstance(_main, EventLoop)
-        self.assertEqual(_main.setup, setup)
+        self.assertEqual(_main.setup, setup_crochet)
         self.assertEqual(_main.no_setup, no_setup)
         self.assertEqual(_main.run_in_reactor, run_in_reactor)
         self.assertEqual(_main.wait_for, wait_for)
