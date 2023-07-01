@@ -13,8 +13,7 @@ jobs:
     name: "Python ${{ matrix.python-version }} ${{ matrix.platform }} ${{ matrix.architecture }}"
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "pypy3"]
-        architecture: ["x64"]
+        python-version: ["3.9", "3.10", "3.11", "pypy3.9"]
         platform: ["ubuntu-latest", "windows-latest"]
 
     runs-on: "${{ matrix.platform }}"
