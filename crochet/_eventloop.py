@@ -2,8 +2,6 @@
 Expose Twisted's event loop to threaded programs.
 """
 
-from __future__ import absolute_import
-
 import threading
 import weakref
 import warnings
