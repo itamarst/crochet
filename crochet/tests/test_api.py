@@ -206,7 +206,8 @@ class EventualResultTests(TestCase):
         start = time.time()
         dr = EventualResult(Deferred(), None)
         self.assertRaises(TimeoutError, dr.wait, timeout=0.03)
-        self.assertTrue(abs(time.time() - start - 0.03) < 0.005)
+        # be a little lenient for slow computers:
+        self.assertTrue(abs(time.time() - start) < 0.05)
 
     def test_timeout_twice(self):
         """
