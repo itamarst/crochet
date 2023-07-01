@@ -37,8 +37,7 @@ Bugs and feature requests should be filed at the project `Github page`_.
 API and features
 ================
 
-Crochet supports Python 3.6, 3.7, 3.8, and 3.9 as well as PyPy3.
-Python 2.7 and 3.5 support is available in older releases.
+Crochet supports Python 3.8, 3.9, 3.10, and 3.11 as well as PyPy3.
 
 Crochet provides the following basic APIs:
 

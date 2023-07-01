@@ -2,14 +2,12 @@
 Expose Twisted's event loop to threaded programs.
 """
 
-from __future__ import absolute_import
-
-import select
 import threading
 import weakref
 import warnings
 from inspect import iscoroutinefunction
 from functools import wraps
+from queue import SimpleQueue
 
 from twisted.python import threadable
 from twisted.python.runtime import platform
@@ -227,30 +225,20 @@ class EventualResult(object):
             return None
 
 
+_STOP = object()
+
+
 class ThreadLogObserver(object):
     """
     A log observer that wraps another observer, and calls it in a thread.
 
     In particular, used to wrap PythonLoggingObserver, so that blocking
     logging.py Handlers don't block the event loop.
-
-    Once Python 3.6 support is dropped, this can use a queue.SimpleQueue object
-    instead of a whole 'nother event loop.
     """
 
     def __init__(self, observer):
         self._observer = observer
-        if getattr(select, "epoll", None):
-            from twisted.internet.epollreactor import EPollReactor
-            reactorFactory = EPollReactor
-        elif getattr(select, "poll", None):
-            from twisted.internet.pollreactor import PollReactor
-            reactorFactory = PollReactor
-        else:
-            from twisted.internet.selectreactor import SelectReactor
-            reactorFactory = SelectReactor
-        self._logWritingReactor = reactorFactory()
-        self._logWritingReactor._registerAsIOThread = False
+        self._queue = SimpleQueue()
         self._thread = threading.Thread(
             target=self._reader, name="CrochetLogWriter")
         self._thread.start()
@@ -260,20 +248,10 @@ class ThreadLogObserver(object):
         Runs in a thread, reads messages from a queue and writes them to
         the wrapped observer.
         """
-        self._logWritingReactor.run(installSignalHandlers=False)
-
-    def stop(self):
-        """
-        Stop the thread.
-        """
-        self._logWritingReactor.callFromThread(self._logWritingReactor.stop)
-
-    def __call__(self, msg):
-        """
-        A log observer that writes to a queue.
-        """
-
-        def log():
+        while True:
+            msg = self._queue.get()
+            if msg is _STOP:
+                return
             try:
                 self._observer(msg)
             except Exception:
@@ -281,7 +259,17 @@ class ThreadLogObserver(object):
                 # just drop on the floor.
                 pass
 
-        self._logWritingReactor.callFromThread(log)
+    def stop(self):
+        """
+        Stop the thread.
+        """
+        self._queue.put(_STOP)
+
+    def __call__(self, msg):
+        """
+        A log observer that writes to a queue.
+        """
+        self._queue.put(msg)
 
 
 class EventLoop(object):
