@@ -1,6 +1,12 @@
 What's New
 ==========
 
+2.1.0
+^^^^^
+
+* Various internal modernizations and maintenance.
+* Dropped Python 3.6 and 3.7 support.
+
 2.0.0
 ^^^^^
 
